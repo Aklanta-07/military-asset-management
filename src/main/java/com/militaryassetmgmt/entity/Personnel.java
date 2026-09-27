@@ -63,9 +63,11 @@ public class Personnel extends BaseEntity {
     @ToString.Exclude
     private Base base;
 
+    @Builder.Default
     @Column(name = "active", nullable = false)
     private Integer active = 1;
 
+    @Builder.Default
     @OneToMany(mappedBy = "personnel", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();

@@ -36,11 +36,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.role.name = :roleName")
     List<User> findByRoleName(@Param("roleName") String roleName);
 
-    @Query("SELECT u FROM User u WHERE u.active = true")
+    @Query("SELECT u FROM User u WHERE u.active = 1")
     List<User> findByActiveTrue();
 
     @Transactional
     @Modifying
     @Query("UPDATE User u SET u.lastLoginAt = :lastLoginAt WHERE u.id = :id")
     void updateLastLogin(@Param("id") Long id, @Param("lastLoginAt") Instant lastLoginAt);
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.base WHERE u.username = :username")
+    Optional<User> findByUsernameWithBase(@Param("username") String username);
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.base LEFT JOIN FETCH u.role WHERE u.username = :username")
+    Optional<User> findByUsernameWithBaseAndRole(@Param("username") String username);
+
 }

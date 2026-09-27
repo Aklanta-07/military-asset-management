@@ -11,6 +11,8 @@ import com.militaryassetmgmt.repository.EquipmentTypeRepository;
 import com.militaryassetmgmt.repository.ExpenditureRepository;
 import com.militaryassetmgmt.repository.PurchaseRepository;
 import com.militaryassetmgmt.repository.TransferRepository;
+import com.militaryassetmgmt.dto.response.PurchaseSummary;
+import com.militaryassetmgmt.dto.response.TransferSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -218,26 +220,26 @@ public class DashboardService implements IDashboardService {
                 ? assetRepository.countByBaseIdAndEquipmentTypeIdAndAcquiredDateBefore(baseId, equipmentTypeId, startDate)
                 : assetRepository.countByEquipmentTypeIdAndAcquiredDateBefore(equipmentTypeId, startDate);
 
-        List<PurchaseRepository.PurchaseSummary> purchases = (baseId != null)
+        List<PurchaseSummary> purchases = (baseId != null)
                 ? purchaseRepository.findSummaryByBaseIdAndEquipmentTypeIdAndDateRange(baseId, equipmentTypeId, startDate, endDate)
                 : purchaseRepository.findSummaryByEquipmentTypeIdAndDateRange(equipmentTypeId, startDate, endDate);
 
-        Long purchasesQty = purchases.stream().mapToLong(PurchaseRepository.PurchaseSummary::getQuantity).sum();
+        Long purchasesQty = purchases.stream().mapToLong(PurchaseSummary::getQuantity).sum();
         BigDecimal purchasesValue = purchases.stream()
-                .map(PurchaseRepository.PurchaseSummary::getTotalCost)
+                .map(PurchaseSummary::getTotalCost)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        List<TransferRepository.TransferSummary> transfersIn = (baseId != null)
+        List<TransferSummary> transfersIn = (baseId != null)
                 ? transferRepository.findReceivedSummaryByBaseIdAndEquipmentTypeIdAndDateRange(baseId, equipmentTypeId, startDate, endDate)
                 : transferRepository.findReceivedSummaryByEquipmentTypeIdAndDateRange(equipmentTypeId, startDate, endDate);
 
-        Long transfersInQty = transfersIn.stream().mapToLong(TransferRepository.TransferSummary::getQuantity).sum();
+        Long transfersInQty = transfersIn.stream().mapToLong(TransferSummary::getQuantity).sum();
 
-        List<TransferRepository.TransferSummary> transfersOut = (baseId != null)
+        List<TransferSummary> transfersOut = (baseId != null)
                 ? transferRepository.findSentSummaryByBaseIdAndEquipmentTypeIdAndDateRange(baseId, equipmentTypeId, startDate, endDate)
                 : transferRepository.findSentSummaryByEquipmentTypeIdAndDateRange(equipmentTypeId, startDate, endDate);
 
-        Long transfersOutQty = transfersOut.stream().mapToLong(TransferRepository.TransferSummary::getQuantity).sum();
+        Long transfersOutQty = transfersOut.stream().mapToLong(TransferSummary::getQuantity).sum();
 
         Long netMovement = purchasesQty + transfersInQty - transfersOutQty;
 
@@ -252,7 +254,7 @@ public class DashboardService implements IDashboardService {
                 .equipmentTypeId(equipmentTypeId)
                 .equipmentTypeCode(equipmentType.getCode())
                 .equipmentTypeName(equipmentType.getName())
-                .equipmentCategory(equipmentType.getCategory())
+                .equipmentCategory(equipmentType.getCategory().name())
                 .startDate(startDate)
                 .endDate(endDate)
                 .openingBalance(openingBalance)
@@ -275,7 +277,7 @@ public class DashboardService implements IDashboardService {
                                 .id(t.getId())
                                 .quantity(t.getQuantity())
                                 .transferDate(t.getTransferDate())
-                                .status(t.getStatus())
+                                .status(t.getStatus().name())
                                 .fromBaseCode(t.getFromBaseCode())
                                 .toBaseCode(t.getToBaseCode())
                                 .fromBaseName(t.getFromBaseName())
@@ -288,7 +290,7 @@ public class DashboardService implements IDashboardService {
                                 .id(t.getId())
                                 .quantity(t.getQuantity())
                                 .transferDate(t.getTransferDate())
-                                .status(t.getStatus())
+                                .status(t.getStatus().name())
                                 .fromBaseCode(t.getFromBaseCode())
                                 .toBaseCode(t.getToBaseCode())
                                 .fromBaseName(t.getFromBaseName())

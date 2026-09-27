@@ -2,6 +2,8 @@ package com.militaryassetmgmt.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -11,7 +13,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -58,10 +59,10 @@ public class Expenditure extends BaseEntity {
     @Column(name = "expenditure_date", nullable = false)
     private LocalDate expenditureDate;
 
-    @NotBlank
-    @Size(max = 100)
+    @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "reason", nullable = false, length = 100)
-    private String reason;
+    private Reason reason;
 
     @Size(max = 500)
     @Column(name = "description", length = 500)

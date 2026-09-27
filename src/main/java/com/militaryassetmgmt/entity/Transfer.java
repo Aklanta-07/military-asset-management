@@ -2,6 +2,8 @@ package com.militaryassetmgmt.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -11,7 +13,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -64,10 +65,10 @@ public class Transfer extends BaseEntity {
     @Column(name = "transfer_date", nullable = false)
     private LocalDate transferDate;
 
-    @NotBlank
-    @Size(max = 30)
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
-    private String status = "REQUESTED";
+    private Status status = Status.REQUESTED;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requested_by", nullable = false)
@@ -115,18 +116,18 @@ public class Transfer extends BaseEntity {
     }
 
     public boolean canApprove() {
-        return "REQUESTED".equals(status);
+        return Status.REQUESTED.equals(status);
     }
 
     public boolean canReceive() {
-        return "APPROVED".equals(status) || "IN_TRANSIT".equals(status);
+        return Status.APPROVED.equals(status) || Status.IN_TRANSIT.equals(status);
     }
 
     public boolean canCancel() {
-        return "REQUESTED".equals(status) || "APPROVED".equals(status);
+        return Status.REQUESTED.equals(status) || Status.APPROVED.equals(status);
     }
 
     public boolean isFinalState() {
-        return "RECEIVED".equals(status) || "CANCELLED".equals(status);
+        return Status.RECEIVED.equals(status) || Status.CANCELLED.equals(status);
     }
 }

@@ -2,6 +2,8 @@ package com.militaryassetmgmt.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -56,15 +58,15 @@ public class Asset extends BaseEntity {
     @Column(name = "serial_number", nullable = false, unique = true, length = 100)
     private String serialNumber;
 
-    @NotBlank
-    @Size(max = 30)
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
-    private String status = "AVAILABLE";
+    private Status status = Status.AVAILABLE;
 
-    @NotBlank
-    @Size(max = 30)
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
     @Column(name = "condition", nullable = false, length = 30)
-    private String condition = "SERVICEABLE";
+    private Condition condition = Condition.SERVICEABLE;
 
     @Column(name = "acquired_date")
     private LocalDate acquiredDate;
@@ -79,9 +81,11 @@ public class Asset extends BaseEntity {
     @Column(name = "notes", length = 1000)
     private String notes;
 
+    @Builder.Default
     @Column(name = "active", nullable = false)
     private Integer active = 1;
 
+    @Builder.Default
     @OneToMany(mappedBy = "asset", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Assignment> assignments = new HashSet<>();

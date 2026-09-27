@@ -36,7 +36,7 @@ public class AuthService implements IAuthService {
         String accessToken = jwtUtil.generateAccessToken(userDetails);
         String refreshToken = jwtUtil.generateRefreshToken(userDetails);
 
-        User user = userService.findByUsername(request.getUsername())
+        User user = userService.findByUsernameWithBaseAndRole(request.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", request.getUsername()));
 
         userService.updateLastLogin(user.getId());
@@ -69,7 +69,7 @@ public class AuthService implements IAuthService {
 
         String newAccessToken = jwtUtil.generateAccessToken(userDetails);
 
-        User user = userService.findByUsername(username)
+        User user = userService.findByUsernameWithBaseAndRole(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
 
         log.info("Refresh token processed successfully for user: {}", username);

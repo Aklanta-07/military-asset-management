@@ -58,33 +58,41 @@ public class Base extends BaseEntity {
     @ToString.Exclude
     private User commander;
 
+    @Builder.Default
     @Column(name = "active", nullable = false)
     private Integer active = 1;
 
+    @Builder.Default
     @OneToMany(mappedBy = "base", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<User> users = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "base", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Personnel> personnel = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "base", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Asset> assets = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "base", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Purchase> purchases = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "fromBase", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Transfer> transfersFrom = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "toBase", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Transfer> transfersTo = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "base", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Expenditure> expenditures = new HashSet<>();

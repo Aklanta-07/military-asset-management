@@ -2,6 +2,8 @@ package com.militaryassetmgmt.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -46,35 +48,39 @@ public class EquipmentType extends BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @NotBlank
-    @Size(max = 50)
+    @Enumerated(EnumType.STRING)
     @Column(name = "category", nullable = false, length = 50)
-    private String category;
+    private Category category;
 
-    @NotBlank
-    @Size(max = 20)
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
     @Column(name = "unit_of_measure", nullable = false, length = 20)
-    private String unitOfMeasure = "UNIT";
+    private UnitOfMeasure unitOfMeasure = UnitOfMeasure.UNIT;
 
     @Size(max = 500)
     @Column(name = "description", length = 500)
     private String description;
-
+    
+    @Builder.Default
     @Column(name = "active", nullable = false)
     private Integer active = 1;
 
+    @Builder.Default
     @OneToMany(mappedBy = "equipmentType", fetch = jakarta.persistence.FetchType.LAZY)
     @ToString.Exclude
     private Set<Asset> assets = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "equipmentType", fetch = jakarta.persistence.FetchType.LAZY)
     @ToString.Exclude
     private Set<Purchase> purchases = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "equipmentType", fetch = jakarta.persistence.FetchType.LAZY)
     @ToString.Exclude
     private Set<Transfer> transfers = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "equipmentType", fetch = jakarta.persistence.FetchType.LAZY)
     @ToString.Exclude
     private Set<Expenditure> expenditures = new HashSet<>();

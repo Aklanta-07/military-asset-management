@@ -1,6 +1,7 @@
 package com.militaryassetmgmt.service;
 
 import com.militaryassetmgmt.dto.request.TransferRequest;
+import com.militaryassetmgmt.util.PageResponse;
 import com.militaryassetmgmt.dto.response.TransferResponse;
 import com.militaryassetmgmt.entity.Asset;
 import com.militaryassetmgmt.entity.Base;
@@ -14,24 +15,20 @@ import com.militaryassetmgmt.repository.BaseRepository;
 import com.militaryassetmgmt.repository.EquipmentTypeRepository;
 import com.militaryassetmgmt.repository.TransferRepository;
 import com.militaryassetmgmt.repository.UserRepository;
-import com.militaryassetmgmt.util.PageResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class TransferService implements ITransferService {
 
     private final TransferRepository transferRepository;
@@ -39,61 +36,61 @@ public class TransferService implements ITransferService {
     private final EquipmentTypeRepository equipmentTypeRepository;
     private final AssetRepository assetRepository;
     private final UserRepository userRepository;
-    private final AuditLogService auditLogService;
 
     @Override
     @Transactional
     public TransferResponse createTransfer(TransferRequest request, String username) {
-        if (request.getFromBaseId().equals(request.getToBaseId())) {
-            throw new BusinessRuleViolationException("Source base and destination base cannot be the same");
+        Base fromBase = baseRepository.findById(request.getFromBaseId())
+                .orElseThrow(() -> new ResourceNotFoundException("From base not found with id: " + request.getFromBaseId()));
+
+        Base toBase = baseRepository.findById(request.getToBaseId())
+                .orElseThrow(() -> new ResourceNotFoundException("To base not found with id: " + request.getToBaseId()));
+
+        if (fromBase.getId().equals(toBase.getId())) {
+            throw new BusinessRuleViolationException("From base and To base cannot be the same");
         }
 
-        Base fromBase = baseRepository.findById(request.getFromBaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Source base not found: " + request.getFromBaseId()));
-        Base toBase = baseRepository.findById(request.getToBaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Destination base not found: " + request.getToBaseId()));
         EquipmentType equipmentType = equipmentTypeRepository.findById(request.getEquipmentTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Equipment type not found: " + request.getEquipmentTypeId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Equipment type not found with id: " + request.getEquipmentTypeId()));
 
-        User user = userRepository.findByUsername(username)
+        User requestedBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
-        if (!user.isAdmin() && (user.getBaseId() == null || !user.getBaseId().equals(fromBase.getId()))) {
-            throw new AccessDeniedException("You can only request transfers from your assigned base");
+        // Check available quantity at from base
+        Long availableQty = assetRepository.countAvailableByBaseAndEquipmentType(fromBase.getId(), equipmentType.getId());
+        if (availableQty < request.getQuantity()) {
+            throw new BusinessRuleViolationException(
+                    String.format("Insufficient available quantity. Available: %d, Requested: %d", availableQty, request.getQuantity()));
         }
 
         Transfer transfer = Transfer.builder()
-                .equipmentType(equipmentType)
                 .fromBase(fromBase)
                 .toBase(toBase)
+                .equipmentType(equipmentType)
                 .quantity(request.getQuantity())
-                .transferDate(request.getTransferDate() != null ? request.getTransferDate() : LocalDate.now())
-                .status("REQUESTED")
-                .requestedBy(user)
+                .transferDate(request.getTransferDate())
+                .status(Transfer.Status.REQUESTED)
+                .requestedBy(requestedBy)
                 .notes(request.getNotes())
                 .build();
 
-        Transfer saved = transferRepository.save(transfer);
-        auditLogService.logAction("Transfer", saved.getId(), "CREATE", null, saved.getStatus(),
-                "status,quantity,fromBase,toBase", username, null, null, null, null);
-
-        log.info("Transfer requested id={} by={} from={} to={} qty={}", saved.getId(), username, fromBase.getCode(), toBase.getCode(), saved.getQuantity());
-        return mapToResponse(saved);
+        Transfer savedTransfer = transferRepository.save(transfer);
+        return mapToResponse(savedTransfer);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public PageResponse<TransferResponse> getTransfers(Long fromBaseId, Long toBaseId, Long equipmentTypeId,
                                                         String status, LocalDate startDate, LocalDate endDate,
                                                         int page, int size, String sortBy, String sortDir) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
+
         Page<Transfer> transferPage = transferRepository.findWithFilters(fromBaseId, toBaseId, equipmentTypeId, status, startDate, endDate, pageable);
+
         return PageResponse.of(transferPage.map(this::mapToResponse));
     }
 
     @Override
-    @Transactional(readOnly = true)
     public TransferResponse getTransferById(Long id) {
         Transfer transfer = transferRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found with id: " + id));
@@ -106,31 +103,24 @@ public class TransferService implements ITransferService {
         Transfer transfer = transferRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found with id: " + id));
 
-        if (!transfer.canApprove()) {
-            throw new BusinessRuleViolationException("Transfer cannot be approved in its current status: " + transfer.getStatus());
+        if (!Transfer.Status.REQUESTED.equals(transfer.getStatus())) {
+            throw new BusinessRuleViolationException("Can only approve transfers with REQUESTED status");
         }
 
-        User user = userRepository.findByUsername(username)
+        User approvedBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
-        if (!user.isAdmin() && !user.isBaseCommander()) {
-            throw new AccessDeniedException("Only Admins and Base Commanders can approve transfers");
-        }
-        if (user.isBaseCommander() && !user.getBaseId().equals(transfer.getFromBase().getId())) {
-            throw new AccessDeniedException("Base commanders can only approve transfers from their assigned base");
+        // Check if user is authorized to approve (Admin or Base Commander of fromBase)
+        if (!approvedBy.isAdmin() && !approvedBy.getBaseId().equals(transfer.getFromBase().getId())) {
+            throw new BusinessRuleViolationException("Not authorized to approve this transfer");
         }
 
-        String oldStatus = transfer.getStatus();
-        transfer.setStatus("APPROVED");
-        transfer.setApprovedBy(user);
+        transfer.setStatus(Transfer.Status.APPROVED);
+        transfer.setApprovedBy(approvedBy);
         transfer.setApprovedAt(Instant.now());
 
-        Transfer saved = transferRepository.save(transfer);
-        auditLogService.logAction("Transfer", saved.getId(), "APPROVE", oldStatus, saved.getStatus(),
-                "status,approvedBy,approvedAt", username, null, null, null, null);
-
-        log.info("Transfer approved id={} by={}", saved.getId(), username);
-        return mapToResponse(saved);
+        Transfer savedTransfer = transferRepository.save(transfer);
+        return mapToResponse(savedTransfer);
     }
 
     @Override
@@ -139,39 +129,44 @@ public class TransferService implements ITransferService {
         Transfer transfer = transferRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found with id: " + id));
 
-        if (!transfer.canReceive()) {
-            throw new BusinessRuleViolationException("Transfer cannot be received in status: " + transfer.getStatus());
+        if (!Transfer.Status.APPROVED.equals(transfer.getStatus()) && !Transfer.Status.IN_TRANSIT.equals(transfer.getStatus())) {
+            throw new BusinessRuleViolationException("Can only receive transfers with APPROVED or IN_TRANSIT status");
         }
 
-        User user = userRepository.findByUsername(username)
+        User receivedBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
-        if (!user.isAdmin() && (user.getBaseId() == null || !user.getBaseId().equals(transfer.getToBase().getId()))) {
-            throw new AccessDeniedException("Only the destination base personnel or an admin can confirm receipt");
+        // Check if user is authorized to receive (Admin or Base Commander of toBase)
+        if (!receivedBy.isAdmin() && !receivedBy.getBaseId().equals(transfer.getToBase().getId())) {
+            throw new BusinessRuleViolationException("Not authorized to receive this transfer");
         }
 
-        String oldStatus = transfer.getStatus();
-        transfer.setStatus("RECEIVED");
-        transfer.setReceivedBy(user);
+        transfer.setStatus(Transfer.Status.RECEIVED);
+        transfer.setReceivedBy(receivedBy);
         transfer.setReceivedAt(Instant.now());
 
-        // Update individual serialized assets from fromBase to toBase if available
-        List<Asset> availableAssets = assetRepository.findAvailableByBaseAndEquipmentType(
-                transfer.getFromBase().getId(), transfer.getEquipmentType().getId()
-        );
-        int toTransfer = Math.min(availableAssets.size(), transfer.getQuantity());
-        for (int i = 0; i < toTransfer; i++) {
-            Asset asset = availableAssets.get(i);
-            asset.setBase(transfer.getToBase());
+        BigDecimal assetValue =
+        EquipmentType.Category.AMMUNITION.equals(transfer.getEquipmentType().getCategory())
+                ? BigDecimal.valueOf(0.5)
+                : BigDecimal.valueOf(1000);
+        // Create assets at destination base
+        for (int i = 0; i < transfer.getQuantity(); i++) {
+            Asset asset = Asset.builder()
+                    .base(transfer.getToBase())
+                    .equipmentType(transfer.getEquipmentType())
+                    .serialNumber(generateSerialNumber(transfer.getEquipmentType().getCode(), transfer.getToBase().getCode()))
+                    .status(Asset.Status.AVAILABLE)
+                    .condition(Asset.Condition.SERVICEABLE)
+                    .acquiredDate(transfer.getTransferDate())
+                    .acquisitionValue(assetValue)
+                    .currentValue(assetValue)
+                    .active(1)
+                    .build();
             assetRepository.save(asset);
         }
 
-        Transfer saved = transferRepository.save(transfer);
-        auditLogService.logAction("Transfer", saved.getId(), "RECEIVE", oldStatus, saved.getStatus(),
-                "status,receivedBy,receivedAt", username, null, null, null, null);
-
-        log.info("Transfer received id={} by={}", saved.getId(), username);
-        return mapToResponse(saved);
+        Transfer savedTransfer = transferRepository.save(transfer);
+        return mapToResponse(savedTransfer);
     }
 
     @Override
@@ -180,62 +175,63 @@ public class TransferService implements ITransferService {
         Transfer transfer = transferRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found with id: " + id));
 
-        if (!transfer.canCancel()) {
-            throw new BusinessRuleViolationException("Transfer cannot be cancelled in status: " + transfer.getStatus());
+        if (Transfer.Status.RECEIVED.equals(transfer.getStatus())) {
+            throw new BusinessRuleViolationException("Cannot cancel a transfer that has been received");
         }
 
-        User user = userRepository.findByUsername(username)
+        if (Transfer.Status.CANCELLED.equals(transfer.getStatus())) {
+            throw new BusinessRuleViolationException("Transfer is already cancelled");
+        }
+
+        User cancelledBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
-        if (!user.isAdmin() && !user.getBaseId().equals(transfer.getFromBase().getId())) {
-            throw new AccessDeniedException("Only administrators or the source base personnel can cancel this transfer");
+        // Check if user is authorized to cancel (Admin or Requester or Base Commander of fromBase)
+        if (!cancelledBy.isAdmin() &&
+            !cancelledBy.getId().equals(transfer.getRequestedBy().getId()) &&
+            !cancelledBy.getBaseId().equals(transfer.getFromBase().getId())) {
+            throw new BusinessRuleViolationException("Not authorized to cancel this transfer");
         }
 
-        String oldStatus = transfer.getStatus();
-        transfer.setStatus("CANCELLED");
-        transfer.setCancelledBy(user);
+        transfer.setStatus(Transfer.Status.CANCELLED);
+        transfer.setCancelledBy(cancelledBy);
         transfer.setCancelledAt(Instant.now());
-        transfer.setCancellationReason(cancellationReason != null ? cancellationReason : "Cancelled by user");
+        transfer.setNotes((transfer.getNotes() != null ? transfer.getNotes() + "; " : "") + "Cancelled: " + cancellationReason);
 
-        Transfer saved = transferRepository.save(transfer);
-        auditLogService.logAction("Transfer", saved.getId(), "CANCEL", oldStatus, saved.getStatus(),
-                "status,cancelledBy,cancelledAt,cancellationReason", username, null, null, null, null);
-
-        log.info("Transfer cancelled id={} by={}", saved.getId(), username);
-        return mapToResponse(saved);
+        Transfer savedTransfer = transferRepository.save(transfer);
+        return mapToResponse(savedTransfer);
     }
 
-    private TransferResponse mapToResponse(Transfer t) {
+    private String generateSerialNumber(String equipmentCode, String baseCode) {
+        long count = assetRepository.count() + 1;
+        return String.format("%s-%s-%06d", equipmentCode, baseCode, count);
+    }
+
+    private TransferResponse mapToResponse(Transfer transfer) {
         return TransferResponse.builder()
-                .id(t.getId())
-                .equipmentTypeId(t.getEquipmentType().getId())
-                .equipmentTypeCode(t.getEquipmentType().getCode())
-                .equipmentTypeName(t.getEquipmentType().getName())
-                .equipmentCategory(t.getEquipmentType().getCategory())
-                .fromBaseId(t.getFromBase().getId())
-                .fromBaseCode(t.getFromBase().getCode())
-                .fromBaseName(t.getFromBase().getName())
-                .toBaseId(t.getToBase().getId())
-                .toBaseCode(t.getToBase().getCode())
-                .toBaseName(t.getToBase().getName())
-                .quantity(t.getQuantity())
-                .transferDate(t.getTransferDate())
-                .status(t.getStatus())
-                .requestedBy(t.getRequestedBy() != null ? t.getRequestedBy().getId() : null)
-                .requestedByName(t.getRequestedBy() != null ? t.getRequestedBy().getFullName() : null)
-                .approvedBy(t.getApprovedBy() != null ? t.getApprovedBy().getId() : null)
-                .approvedByName(t.getApprovedBy() != null ? t.getApprovedBy().getFullName() : null)
-                .approvedAt(t.getApprovedAt())
-                .receivedBy(t.getReceivedBy() != null ? t.getReceivedBy().getId() : null)
-                .receivedByName(t.getReceivedBy() != null ? t.getReceivedBy().getFullName() : null)
-                .receivedAt(t.getReceivedAt())
-                .cancelledBy(t.getCancelledBy() != null ? t.getCancelledBy().getId() : null)
-                .cancelledByName(t.getCancelledBy() != null ? t.getCancelledBy().getFullName() : null)
-                .cancelledAt(t.getCancelledAt())
-                .cancellationReason(t.getCancellationReason())
-                .notes(t.getNotes())
-                .createdAt(t.getCreatedAt())
-                .updatedAt(t.getUpdatedAt())
+                .id(transfer.getId())
+                .fromBaseId(transfer.getFromBase().getId())
+                .fromBaseCode(transfer.getFromBase().getCode())
+                .fromBaseName(transfer.getFromBase().getName())
+                .toBaseId(transfer.getToBase().getId())
+                .toBaseCode(transfer.getToBase().getCode())
+                .toBaseName(transfer.getToBase().getName())
+                .equipmentTypeId(transfer.getEquipmentType().getId())
+                .equipmentTypeCode(transfer.getEquipmentType().getCode())
+                .equipmentTypeName(transfer.getEquipmentType().getName())
+                .quantity(transfer.getQuantity())
+                .transferDate(transfer.getTransferDate())
+                .status(transfer.getStatus().name())
+                .requestedBy(transfer.getRequestedBy().getUsername())
+                .approvedBy(transfer.getApprovedBy() != null ? transfer.getApprovedBy().getUsername() : null)
+                .approvedAt(transfer.getApprovedAt())
+                .receivedBy(transfer.getReceivedBy() != null ? transfer.getReceivedBy().getUsername() : null)
+                .receivedAt(transfer.getReceivedAt())
+                .cancelledBy(transfer.getCancelledBy() != null ? transfer.getCancelledBy().getUsername() : null)
+                .cancelledAt(transfer.getCancelledAt())
+                .notes(transfer.getNotes())
+                .createdAt(transfer.getCreatedAt())
+                .updatedAt(transfer.getUpdatedAt())
                 .build();
     }
 }

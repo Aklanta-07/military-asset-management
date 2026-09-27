@@ -26,7 +26,7 @@ public class ExpenditureResponse {
     private LocalDate expenditureDate;
     private String reason;
     private String description;
-    private Long authorizedBy;
+    private String authorizedBy;
     private String authorizedByName;
     private Instant createdAt;
     private Instant updatedAt;

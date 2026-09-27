@@ -2,6 +2,7 @@ package com.militaryassetmgmt.service;
 
 import com.militaryassetmgmt.dto.request.AssignmentRequest;
 import com.militaryassetmgmt.dto.response.AssignmentResponse;
+import com.militaryassetmgmt.util.PageResponse;
 import com.militaryassetmgmt.entity.Asset;
 import com.militaryassetmgmt.entity.Assignment;
 import com.militaryassetmgmt.entity.Personnel;
@@ -12,14 +13,11 @@ import com.militaryassetmgmt.repository.AssetRepository;
 import com.militaryassetmgmt.repository.AssignmentRepository;
 import com.militaryassetmgmt.repository.PersonnelRepository;
 import com.militaryassetmgmt.repository.UserRepository;
-import com.militaryassetmgmt.util.PageResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,14 +25,12 @@ import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class AssignmentService implements IAssignmentService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssetRepository assetRepository;
     private final PersonnelRepository personnelRepository;
     private final UserRepository userRepository;
-    private final AuditLogService auditLogService;
 
     @Override
     @Transactional
@@ -42,55 +38,61 @@ public class AssignmentService implements IAssignmentService {
         Asset asset = assetRepository.findById(request.getAssetId())
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found with id: " + request.getAssetId()));
 
-        if (!"AVAILABLE".equals(asset.getStatus())) {
+        if (Asset.Status.AVAILABLE != asset.getStatus()) {
             throw new BusinessRuleViolationException("Asset is not available for assignment. Current status: " + asset.getStatus());
         }
 
         Personnel personnel = personnelRepository.findById(request.getPersonnelId())
                 .orElseThrow(() -> new ResourceNotFoundException("Personnel not found with id: " + request.getPersonnelId()));
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-
-        if (!user.isAdmin() && !user.getBaseId().equals(asset.getBase().getId())) {
-            throw new AccessDeniedException("You can only assign assets belonging to your assigned base");
+        if (!personnel.isActive()) {
+            throw new BusinessRuleViolationException("Personnel is not active");
         }
 
-        // Mark asset as ASSIGNED
-        asset.setStatus("ASSIGNED");
-        assetRepository.save(asset);
+        User assignedBy = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        // Check if user is authorized (Admin or Base Commander of asset's base)
+        if (!assignedBy.isAdmin() && !assignedBy.getBaseId().equals(asset.getBase().getId())) {
+            throw new BusinessRuleViolationException("Not authorized to assign assets for this base");
+        }
+
+        // Check if personnel belongs to the same base (optional business rule)
+        if (!personnel.getBase().getId().equals(asset.getBase().getId())) {
+            throw new BusinessRuleViolationException("Personnel must belong to the same base as the asset");
+        }
 
         Assignment assignment = Assignment.builder()
                 .asset(asset)
                 .personnel(personnel)
-                .assignedDate(request.getAssignedDate() != null ? request.getAssignedDate() : LocalDate.now())
+                .assignedDate(request.getAssignedDate())
                 .expectedReturnDate(request.getExpectedReturnDate())
-                .status("ACTIVE")
-                .assignedBy(user)
+                .status(Assignment.Status.ACTIVE)
+                .assignedBy(assignedBy)
                 .notes(request.getNotes())
                 .build();
 
-        Assignment saved = assignmentRepository.save(assignment);
-        auditLogService.logAction("Assignment", saved.getId(), "ASSIGN", null, saved.getStatus(),
-                "assetId,personnelId,status", username, null, null, null, null);
+        // Update asset status to ASSIGNED
+        asset.setStatus(Asset.Status.ASSIGNED);
+        assetRepository.save(asset);
 
-        log.info("Asset {} assigned to personnel {} by {}", asset.getSerialNumber(), personnel.getServiceNumber(), username);
-        return mapToResponse(saved);
+        Assignment savedAssignment = assignmentRepository.save(assignment);
+        return mapToResponse(savedAssignment);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public PageResponse<AssignmentResponse> getAssignments(Long assetId, Long personnelId, String status,
-                                                           LocalDate startDate, LocalDate endDate,
-                                                           int page, int size, String sortBy, String sortDir) {
+                                                            LocalDate startDate, LocalDate endDate,
+                                                            int page, int size, String sortBy, String sortDir) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Assignment> pageResult = assignmentRepository.findWithFilters(assetId, personnelId, status, startDate, endDate, pageable);
-        return PageResponse.of(pageResult.map(this::mapToResponse));
+
+        Page<Assignment> assignmentPage = assignmentRepository.findWithFilters(assetId, personnelId, status, startDate, endDate, pageable);
+
+        return PageResponse.of(assignmentPage.map(this::mapToResponse));
     }
 
     @Override
-    @Transactional(readOnly = true)
     public AssignmentResponse getAssignmentById(Long id) {
         Assignment assignment = assignmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found with id: " + id));
@@ -103,57 +105,51 @@ public class AssignmentService implements IAssignmentService {
         Assignment assignment = assignmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found with id: " + id));
 
-        if (!"ACTIVE".equals(assignment.getStatus())) {
-            throw new BusinessRuleViolationException("Assignment is not active. Current status: " + assignment.getStatus());
+        if (Assignment.Status.ACTIVE != assignment.getStatus()) {
+            throw new BusinessRuleViolationException("Can only return assets with ACTIVE assignment status");
         }
 
-        User user = userRepository.findByUsername(username)
+        User returnedBy = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
-        assignment.setStatus("RETURNED");
-        assignment.setReturnedDate(returnedDate != null ? returnedDate : LocalDate.now());
-        assignment.setReturnedBy(user);
+        // Check if user is authorized (Admin or Base Commander of asset's base)
+        if (!returnedBy.isAdmin() && !returnedBy.getBaseId().equals(assignment.getAsset().getBase().getId())) {
+            throw new BusinessRuleViolationException("Not authorized to return assets for this base");
+        }
 
-        // Asset becomes AVAILABLE again
+        assignment.setStatus(Assignment.Status.RETURNED);
+        assignment.setReturnedDate(returnedDate);
+        assignment.setReturnedBy(returnedBy);
+
+        // Update asset status back to AVAILABLE
         Asset asset = assignment.getAsset();
-        asset.setStatus("AVAILABLE");
+        asset.setStatus(Asset.Status.AVAILABLE);
         assetRepository.save(asset);
 
-        Assignment saved = assignmentRepository.save(assignment);
-        auditLogService.logAction("Assignment", saved.getId(), "RETURN", "ACTIVE", "RETURNED",
-                "status,returnedDate,returnedBy", username, null, null, null, null);
-
-        log.info("Asset {} returned by {} on {}", asset.getSerialNumber(), username, assignment.getReturnedDate());
-        return mapToResponse(saved);
+        Assignment savedAssignment = assignmentRepository.save(assignment);
+        return mapToResponse(savedAssignment);
     }
 
-    private AssignmentResponse mapToResponse(Assignment a) {
+    private AssignmentResponse mapToResponse(Assignment assignment) {
         return AssignmentResponse.builder()
-                .id(a.getId())
-                .assetId(a.getAsset().getId())
-                .assetSerialNumber(a.getAsset().getSerialNumber())
-                .equipmentTypeId(a.getAsset().getEquipmentType().getId())
-                .equipmentTypeCode(a.getAsset().getEquipmentType().getCode())
-                .equipmentTypeName(a.getAsset().getEquipmentType().getName())
-                .personnelId(a.getPersonnel().getId())
-                .personnelServiceNumber(a.getPersonnel().getServiceNumber())
-                .personnelRank(a.getPersonnel().getRank())
-                .personnelFullName(a.getPersonnel().getFullName())
-                .personnelUnit(a.getPersonnel().getUnit())
-                .baseId(a.getAsset().getBase().getId())
-                .baseCode(a.getAsset().getBase().getCode())
-                .baseName(a.getAsset().getBase().getName())
-                .assignedDate(a.getAssignedDate())
-                .returnedDate(a.getReturnedDate())
-                .expectedReturnDate(a.getExpectedReturnDate())
-                .status(a.getStatus())
-                .assignedBy(a.getAssignedBy() != null ? a.getAssignedBy().getId() : null)
-                .assignedByName(a.getAssignedBy() != null ? a.getAssignedBy().getFullName() : null)
-                .returnedBy(a.getReturnedBy() != null ? a.getReturnedBy().getId() : null)
-                .returnedByName(a.getReturnedBy() != null ? a.getReturnedBy().getFullName() : null)
-                .notes(a.getNotes())
-                .createdAt(a.getCreatedAt())
-                .updatedAt(a.getUpdatedAt())
+                .id(assignment.getId())
+                .assetId(assignment.getAsset().getId())
+                .assetSerialNumber(assignment.getAsset().getSerialNumber())
+                .assetName(assignment.getAsset().getEquipmentType().getName())
+                .personnelId(assignment.getPersonnel().getId())
+                .personnelServiceNumber(assignment.getPersonnel().getServiceNumber())
+                .personnelFullName(assignment.getPersonnel().getFullName())
+                .personnelRank(assignment.getPersonnel().getRank())
+                .personnelUnit(assignment.getPersonnel().getUnit())
+                .assignedDate(assignment.getAssignedDate())
+                .expectedReturnDate(assignment.getExpectedReturnDate())
+                .returnedDate(assignment.getReturnedDate())
+                .status(assignment.getStatus().name())
+                .assignedBy(assignment.getAssignedBy().getUsername())
+                .returnedBy(assignment.getReturnedBy() != null ? assignment.getReturnedBy().getUsername() : null)
+                .notes(assignment.getNotes())
+                .createdAt(assignment.getCreatedAt())
+                .updatedAt(assignment.getUpdatedAt())
                 .build();
     }
 }

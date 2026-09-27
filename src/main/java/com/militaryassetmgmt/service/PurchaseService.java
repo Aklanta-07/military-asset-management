@@ -76,7 +76,7 @@ public class PurchaseService implements IPurchaseService {
                 .supplier(request.getSupplier())
                 .invoiceReference(request.getInvoiceReference())
                 .description(request.getDescription())
-                .status("COMPLETED")
+                .status(Purchase.Status.COMPLETED)
                 .createdByUser(createdByUser)
                 .build();
 
@@ -90,8 +90,8 @@ public class PurchaseService implements IPurchaseService {
                         .base(base)
                         .equipmentType(equipmentType)
                         .serialNumber(generateSerialNumber(equipmentType.getCode(), base.getCode()))
-                        .status("AVAILABLE")
-                        .condition("SERVICEABLE")
+                        .status(Asset.Status.AVAILABLE)
+                        .condition(Asset.Condition.SERVICEABLE)
                         .acquiredDate(request.getPurchaseDate())
                         .acquisitionValue(request.getUnitCost())
                         .currentValue(request.getUnitCost())
@@ -105,7 +105,8 @@ public class PurchaseService implements IPurchaseService {
         return mapToResponse(savedPurchase);
     }
 
-    @Override
+    @Override	
+    @Transactional(readOnly = true)
     public PageResponse<PurchaseResponse> getPurchases(Long baseId, Long equipmentTypeId,
                                                         LocalDate startDate, LocalDate endDate,
                                                         int page, int size, String sortBy, String sortDir) {
@@ -116,6 +117,7 @@ public class PurchaseService implements IPurchaseService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PurchaseResponse getPurchaseById(Long id) {
         Purchase purchase = purchaseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase not found with id: " + id));
@@ -128,7 +130,7 @@ public class PurchaseService implements IPurchaseService {
         Purchase purchase = purchaseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase not found with id: " + id));
 
-        if (!"PENDING".equals(purchase.getStatus())) {
+        if (purchase.getStatus() != Purchase.Status.PENDING) {
             throw new BusinessRuleViolationException("Cannot update purchase with status: " + purchase.getStatus());
         }
 
@@ -159,7 +161,7 @@ public class PurchaseService implements IPurchaseService {
         Purchase purchase = purchaseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase not found with id: " + id));
 
-        if (!"PENDING".equals(purchase.getStatus())) {
+        if (purchase.getStatus() != Purchase.Status.PENDING) {
             throw new BusinessRuleViolationException("Cannot delete purchase with status: " + purchase.getStatus());
         }
 
@@ -186,7 +188,7 @@ public class PurchaseService implements IPurchaseService {
                 .purchaseDate(purchase.getPurchaseDate())
                 .supplier(purchase.getSupplier())
                 .invoiceReference(purchase.getInvoiceReference())
-                .status(purchase.getStatus())
+                .status(purchase.getStatus().name())
                 .createdBy(purchase.getCreatedByUser() != null ? purchase.getCreatedByUser().getId() : null)
                 .createdByName(purchase.getCreatedByUser() != null ? purchase.getCreatedByUser().getFullName() : null)
                 .createdAt(purchase.getCreatedAt())

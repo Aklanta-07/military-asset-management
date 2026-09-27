@@ -51,8 +51,8 @@ public class EquipmentTypeService implements IEquipmentTypeService {
                 .id(et.getId())
                 .code(et.getCode())
                 .name(et.getName())
-                .category(et.getCategory())
-                .unitOfMeasure(et.getUnitOfMeasure())
+                .category(et.getCategory().name())
+                .unitOfMeasure(et.getUnitOfMeasure().name())
                 .description(et.getDescription())
                 .active(et.isActive())
                 .build();

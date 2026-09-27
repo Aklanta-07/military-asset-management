@@ -2,6 +2,8 @@ package com.militaryassetmgmt.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -58,10 +60,10 @@ public class Assignment extends BaseEntity {
     @Column(name = "expected_return_date")
     private LocalDate expectedReturnDate;
 
-    @NotBlank
-    @Size(max = 30)
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
-    private String status = "ACTIVE";
+    private Status status = Status.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_by", nullable = false)
@@ -85,14 +87,14 @@ public class Assignment extends BaseEntity {
     }
 
     public boolean isActive() {
-        return "ACTIVE".equals(status);
+        return Status.ACTIVE.equals(status);
     }
 
     public boolean isReturned() {
-        return "RETURNED".equals(status);
+        return Status.RETURNED.equals(status);
     }
 
     public boolean isOverdue() {
-        return "OVERDUE".equals(status) || (expectedReturnDate != null && expectedReturnDate.isBefore(LocalDate.now()) && "ACTIVE".equals(status));
+        return Status.OVERDUE.equals(status) || (expectedReturnDate != null && expectedReturnDate.isBefore(LocalDate.now()) && Status.ACTIVE.equals(status));
     }
 }

@@ -39,27 +39,27 @@ INSERT INTO bases (id, code, name, location, commander_id, active, created_at, u
 -- =============================================================================
 -- ADMIN user (no base assignment)
 INSERT INTO users (id, username, email, password_hash, full_name, role_id, base_id, active, created_at, updated_at, created_by) VALUES
-(1, 'admin', 'admin@military.asset', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iYqiSfFYqJ8YqJ8YqJ8YqJ8YqJ8YqJ', 'System Administrator', 1, NULL, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
+(1, 'admin', 'admin@military.asset', '$2a$10$yC/CuOcxIAPgJn3VRbhcHOg6wbv695GJcwqN4TPAlq0jM1eoyD30K', 'System Administrator', 1, NULL, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
 
 -- BASE_COMMANDER for BASE-001
 INSERT INTO users (id, username, email, password_hash, full_name, role_id, base_id, active, created_at, updated_at, created_by) VALUES
-(2, 'commander_alpha', 'commander.alpha@military.asset', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iYqiSfFYqJ8YqJ8YqJ8YqJ8YqJ8YqJ', 'Commander John Alpha', 2, 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
+(2, 'commander_alpha', 'commander.alpha@military.asset', '$2a$10$yC/CuOcxIAPgJn3VRbhcHOg6wbv695GJcwqN4TPAlq0jM1eoyD30K', 'Commander John Alpha', 2, 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
 
 -- BASE_COMMANDER for BASE-002
 INSERT INTO users (id, username, email, password_hash, full_name, role_id, base_id, active, created_at, updated_at, created_by) VALUES
-(3, 'commander_bravo', 'commander.bravo@military.asset', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iYqiSfFYqJ8YqJ8YqJ8YqJ8YqJ8YqJ', 'Commander Jane Bravo', 2, 2, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
+(3, 'commander_bravo', 'commander.bravo@military.asset', '$2a$10$yC/CuOcxIAPgJn3VRbhcHOg6wbv695GJcwqN4TPAlq0jM1eoyD30K', 'Commander Jane Bravo', 2, 2, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
 
 -- LOGISTICS_OFFICER for BASE-001
 INSERT INTO users (id, username, email, password_hash, full_name, role_id, base_id, active, created_at, updated_at, created_by) VALUES
-(4, 'logistics_alpha', 'logistics.alpha@military.asset', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iYqiSfFYqJ8YqJ8YqJ8YqJ8YqJ8YqJ', 'Logistics Officer Mike Alpha', 3, 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
+(4, 'logistics_alpha', 'logistics.alpha@military.asset', '$2a$10$yC/CuOcxIAPgJn3VRbhcHOg6wbv695GJcwqN4TPAlq0jM1eoyD30K', 'Logistics Officer Mike Alpha', 3, 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
 
 -- LOGISTICS_OFFICER for BASE-002
 INSERT INTO users (id, username, email, password_hash, full_name, role_id, base_id, active, created_at, updated_at, created_by) VALUES
-(5, 'logistics_bravo', 'logistics.bravo@military.asset', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iYqiSfFYqJ8YqJ8YqJ8YqJ8YqJ8YqJ', 'Logistics Officer Sarah Bravo', 3, 2, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
+(5, 'logistics_bravo', 'logistics.bravo@military.asset', '$2a$10$yC/CuOcxIAPgJn3VRbhcHOg6wbv695GJcwqN4TPAlq0jM1eoyD30K', 'Logistics Officer Sarah Bravo', 3, 2, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
 
 -- Additional LOGISTICS_OFFICER for BASE-003
 INSERT INTO users (id, username, email, password_hash, full_name, role_id, base_id, active, created_at, updated_at, created_by) VALUES
-(6, 'logistics_charlie', 'logistics.charlie@military.asset', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iYqiSfFYqJ8YqJ8YqJ8YqJ8YqJ8YqJ', 'Logistics Officer Tom Charlie', 3, 3, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
+(6, 'logistics_charlie', 'logistics.charlie@military.asset', '$2a$10$yC/CuOcxIAPgJn3VRbhcHOg6wbv695GJcwqN4TPAlq0jM1eoyD30K', 'Logistics Officer Tom Charlie', 3, 3, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
 
 -- =============================================================================
 -- UPDATE BASES WITH COMMANDER IDs

@@ -16,6 +16,7 @@ public class AssignmentResponse {
 
     private Long id;
     private Long assetId;
+    private String assetName;
     private String assetSerialNumber;
     private Long equipmentTypeId;
     private String equipmentTypeCode;
@@ -32,9 +33,9 @@ public class AssignmentResponse {
     private LocalDate returnedDate;
     private LocalDate expectedReturnDate;
     private String status;
-    private Long assignedBy;
+    private String assignedBy;
     private String assignedByName;
-    private Long returnedBy;
+    private String returnedBy;
     private String returnedByName;
     private String notes;
     private Instant createdAt;
