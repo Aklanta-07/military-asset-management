@@ -3,6 +3,8 @@ package com.militaryassetmgmt.service;
 import com.militaryassetmgmt.dto.response.DashboardSummary;
 import com.militaryassetmgmt.dto.response.NetMovementDetail;
 import com.militaryassetmgmt.entity.Base;
+import com.militaryassetmgmt.entity.User;
+import com.militaryassetmgmt.exception.ResourceNotFoundException;
 import com.militaryassetmgmt.entity.EquipmentType;
 import com.militaryassetmgmt.repository.AssetRepository;
 import com.militaryassetmgmt.repository.AssignmentRepository;
@@ -11,11 +13,13 @@ import com.militaryassetmgmt.repository.EquipmentTypeRepository;
 import com.militaryassetmgmt.repository.ExpenditureRepository;
 import com.militaryassetmgmt.repository.PurchaseRepository;
 import com.militaryassetmgmt.repository.TransferRepository;
+import com.militaryassetmgmt.repository.UserRepository;
 import com.militaryassetmgmt.dto.response.PurchaseSummary;
 import com.militaryassetmgmt.dto.response.TransferSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,7 +31,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class DashboardService implements IDashboardService {
-
+    
+    private final UserRepository userRepository;
     private final AssetRepository assetRepository;
     private final PurchaseRepository purchaseRepository;
     private final TransferRepository transferRepository;
@@ -37,16 +42,14 @@ public class DashboardService implements IDashboardService {
     private final EquipmentTypeRepository equipmentTypeRepository;
 
     @Override
-    public DashboardSummary getDashboardSummary(Long baseId, LocalDate startDate, LocalDate endDate) {
-        return getDashboardSummary(baseId, null, startDate, endDate);
-    }
+    public DashboardSummary getDashboardSummary(Long baseId, Long equipmentTypeId, LocalDate startDate, LocalDate endDate, String username) {
+        Long effectiveBaseId =
+            resolveEffectiveBaseId(baseId, username);
 
-    @Override
-    public DashboardSummary getDashboardSummary(Long baseId, Long equipmentTypeId, LocalDate startDate, LocalDate endDate) {
         if (equipmentTypeId != null) {
-            return getEquipmentTypeDashboardSummary(baseId, equipmentTypeId, startDate, endDate);
+            return getEquipmentTypeDashboardSummary(effectiveBaseId, equipmentTypeId, startDate, endDate);
         }
-        if (baseId == null) {
+        if (effectiveBaseId == null) {
             return getGlobalDashboardSummary(startDate, endDate);
         }
         return getBaseDashboardSummary(baseId, startDate, endDate);
@@ -185,12 +188,10 @@ public class DashboardService implements IDashboardService {
     }
 
     @Override
-    public List<NetMovementDetail> getNetMovementDetail(Long baseId, LocalDate startDate, LocalDate endDate) {
-        return getNetMovementDetail(baseId, null, startDate, endDate);
-    }
+    public List<NetMovementDetail> getNetMovementDetail(Long baseId, Long equipmentTypeId, LocalDate startDate, LocalDate endDate, String username) {
+        Long effectiveBaseId =
+            resolveEffectiveBaseId(baseId, username);
 
-    @Override
-    public List<NetMovementDetail> getNetMovementDetail(Long baseId, Long equipmentTypeId, LocalDate startDate, LocalDate endDate) {
         List<EquipmentType> equipmentTypes;
         if (equipmentTypeId != null) {
             equipmentTypes = equipmentTypeRepository.findById(equipmentTypeId)
@@ -202,7 +203,7 @@ public class DashboardService implements IDashboardService {
 
         List<NetMovementDetail> details = new ArrayList<>();
         for (EquipmentType equipmentType : equipmentTypes) {
-            NetMovementDetail detail = buildNetMovementDetail(baseId, equipmentType, startDate, endDate);
+            NetMovementDetail detail = buildNetMovementDetail(effectiveBaseId, equipmentType, startDate, endDate);
             if (detail.getOpeningBalance() > 0 || detail.getPurchasesQty() > 0 ||
                     detail.getTransfersInQty() > 0 || detail.getTransfersOutQty() > 0 ||
                     detail.getNetMovement() != 0 || detail.getClosingBalance() > 0) {
@@ -301,4 +302,31 @@ public class DashboardService implements IDashboardService {
                 .closingBalance(closingBalance)
                 .build();
     }
+
+    private Long resolveEffectiveBaseId(Long requestedBaseId, String username) {
+
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() ->
+                    new ResourceNotFoundException("User not found: " + username));
+
+        if (user.isAdmin()) {
+            return requestedBaseId;
+        }
+
+        if (user.isBaseCommander()) {
+
+        if (user.getBaseId() == null) {
+            throw new AccessDeniedException(
+                    "Base Commander is not assigned to a base"
+            );
+        }
+
+             return user.getBaseId();
+        }
+
+        throw new AccessDeniedException(
+            "You are not authorized to access the dashboard"
+        );
+    }
+
 }

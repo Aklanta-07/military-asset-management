@@ -23,7 +23,7 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping("/summary")
-    @PreAuthorize("hasAnyRole('ADMIN', 'BASE_COMMANDER', 'LOGISTICS_OFFICER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'BASE_COMMANDER')")
     public ApiResponse<DashboardSummary> getDashboardSummary(
             @RequestParam(required = false) Long baseId,
             @RequestParam(required = false) Long equipmentTypeId,
@@ -31,18 +31,15 @@ public class DashboardController {
             @RequestParam(required = false) LocalDate endDate,
             Authentication authentication) {
 
-        // If user is BASE_COMMANDER or LOGISTICS_OFFICER, override baseId to their assigned base
-        Long effectiveBaseId = getEffectiveBaseId(baseId, authentication);
-
         LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now().minusMonths(1);
         LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
 
-        DashboardSummary summary = dashboardService.getDashboardSummary(effectiveBaseId, equipmentTypeId, effectiveStartDate, effectiveEndDate);
+        DashboardSummary summary = dashboardService.getDashboardSummary(baseId, equipmentTypeId, effectiveStartDate, effectiveEndDate, authentication.getName());
         return ApiResponse.success(summary);
     }
 
     @GetMapping("/net-movement")
-    @PreAuthorize("hasAnyRole('ADMIN', 'BASE_COMMANDER', 'LOGISTICS_OFFICER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'BASE_COMMANDER')")
     public ApiResponse<List<NetMovementDetail>> getNetMovementDetail(
             @RequestParam(required = false) Long baseId,
             @RequestParam(required = false) Long equipmentTypeId,
@@ -50,30 +47,10 @@ public class DashboardController {
             @RequestParam(required = false) LocalDate endDate,
             Authentication authentication) {
 
-        Long effectiveBaseId = getEffectiveBaseId(baseId, authentication);
         LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now().minusMonths(1);
         LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
 
-        List<NetMovementDetail> details = dashboardService.getNetMovementDetail(effectiveBaseId, equipmentTypeId, effectiveStartDate, effectiveEndDate);
+        List<NetMovementDetail> details = dashboardService.getNetMovementDetail(baseId, equipmentTypeId, effectiveStartDate, effectiveEndDate, authentication.getName());
         return ApiResponse.success(details);
-    }
-
-    private Long getEffectiveBaseId(Long requestedBaseId, Authentication authentication) {
-        // Admin can view any base
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if(isAdmin) {
-            return requestedBaseId;
-        }
-        
-        // Base Commander and Logistics Officer can only view their assigned base
-        return getUserBaseId(authentication);
-    }
-
-    private Long getUserBaseId(Authentication authentication) {
-        // Extract baseId from JWT token - this would be set in the token
-        // For now, we'll return null which will be handled by the service
-        return null;
     }
 }

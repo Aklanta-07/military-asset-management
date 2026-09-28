@@ -11,11 +11,7 @@ import java.util.List;
  */
 public interface IDashboardService {
 
-    DashboardSummary getDashboardSummary(Long baseId, LocalDate startDate, LocalDate endDate);
+    DashboardSummary getDashboardSummary(Long baseId, Long equipmentTypeId, LocalDate startDate, LocalDate endDate, String username);
 
-    DashboardSummary getDashboardSummary(Long baseId, Long equipmentTypeId, LocalDate startDate, LocalDate endDate);
-
-    List<NetMovementDetail> getNetMovementDetail(Long baseId, LocalDate startDate, LocalDate endDate);
-
-    List<NetMovementDetail> getNetMovementDetail(Long baseId, Long equipmentTypeId, LocalDate startDate, LocalDate endDate);
+    List<NetMovementDetail> getNetMovementDetail(Long baseId, Long equipmentTypeId, LocalDate startDate, LocalDate endDate, String username);
 }
