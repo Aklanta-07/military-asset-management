@@ -7,9 +7,9 @@ import java.util.List;
 
 public interface IAssetService {
 
-    PageResponse<AssetResponse> getAssets(Long baseId, Long equipmentTypeId, String status, int page, int size);
+    PageResponse<AssetResponse> getAssets(Long baseId, Long equipmentTypeId, String status, int page, int size, String username);
 
-    AssetResponse getAssetById(Long id);
+    AssetResponse getAssetById(Long id, String username);
 
     AssetResponse getAssetBySerialNumber(String serialNumber);
 

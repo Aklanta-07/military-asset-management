@@ -66,7 +66,7 @@ public class AuditLogService implements IAuditLogService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<AuditLogResponse> getAuditLogs(String entityType, Long entityId,
-                                                       Long performedBy, String action,
+                                                       Long performedBy, AuditLog.Action action,
                                                        Instant startDate, Instant endDate,
                                                        int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "performedAt"));

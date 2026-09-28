@@ -1,18 +1,22 @@
 package com.militaryassetmgmt.service;
+import com.militaryassetmgmt.entity.User;
 
 import com.militaryassetmgmt.dto.response.AssetResponse;
 import com.militaryassetmgmt.entity.Asset;
 import com.militaryassetmgmt.exception.ResourceNotFoundException;
 import com.militaryassetmgmt.repository.AssetRepository;
+import com.militaryassetmgmt.repository.UserRepository;
 import com.militaryassetmgmt.util.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,18 +25,34 @@ import java.util.stream.Collectors;
 public class AssetService implements IAssetService {
 
     private final AssetRepository assetRepository;
+    private final UserRepository userRepository;
 
     @Override
-    public PageResponse<AssetResponse> getAssets(Long baseId, Long equipmentTypeId, String status, int page, int size) {
+    public PageResponse<AssetResponse> getAssets(Long baseId, Long equipmentTypeId, String status, int page, int size, String username) {
+        User user = userRepository.findByUsername(username)
+        .orElseThrow(() ->
+                new ResourceNotFoundException("User not found: " + username));
+
+        Long effectiveBaseId = user.isAdmin()
+                 ? baseId
+                 : user.getBaseId();
+
         Pageable pageable = PageRequest.of(page, size);
-        Page<Asset> assetPage = assetRepository.findWithFilters(baseId, equipmentTypeId, status, pageable);
+        Page<Asset> assetPage = assetRepository.findWithFilters(effectiveBaseId, equipmentTypeId, status, pageable);
         return PageResponse.of(assetPage.map(this::mapToResponse));
     }
 
     @Override
-    public AssetResponse getAssetById(Long id) {
+    public AssetResponse getAssetById(Long id, String username) {
         Asset asset = assetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found with id: " + id));
+
+        User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        if (!user.isAdmin() && !Objects.equals(user.getBaseId(), asset.getBase().getId())) {
+            throw new AccessDeniedException("You can only view assets for your assigned base.");
+        }
         return mapToResponse(asset);
     }
 

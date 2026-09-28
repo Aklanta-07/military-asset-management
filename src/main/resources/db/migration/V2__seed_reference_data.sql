@@ -223,6 +223,8 @@ INSERT INTO purchases (id, equipment_type_id, base_id, quantity, unit_cost, tota
 INSERT INTO purchases (id, equipment_type_id, base_id, quantity, unit_cost, total_cost, purchase_date, supplier, invoice_reference, description, status, created_at, updated_at, created_by, updated_by) VALUES
 (4, 14, 3, 20, 25000.00, 500000.00, DATE '2024-01-20', 'L3Harris', 'INV-2024-008', 'Radio procurement for Charlie Base', 'COMPLETED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 6, 6);
 
+ALTER SEQUENCE seq_purchases RESTART WITH 5;
+
 -- =============================================================================
 -- SAMPLE TRANSFERS
 -- =============================================================================
@@ -250,12 +252,16 @@ INSERT INTO expenditures (id, equipment_type_id, base_id, quantity, expenditure_
 INSERT INTO expenditures (id, equipment_type_id, base_id, quantity, expenditure_date, reason, description, authorized_by, created_at, updated_at, updated_by) VALUES
 (3, 12, 2, 50, DATE '2024-03-18', 'OPERATIONS', '40mm grenade expenditure - field exercise', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 3);
 
--- =============================================================================
--- RESET SEQUENCES TO AVOID CONFLICTS
--- =============================================================================
--- Note: In Oracle, sequences are independent. The next values will be:
--- seq_users: 7, seq_roles: 4, seq_bases: 5, seq_equipment_types: 21, seq_assets: 12, seq_purchases: 5, seq_transfers: 3, seq_assignments: 2, seq_expenditures: 4, seq_personnel: 11, seq_audit_logs: 1
 
--- =============================================================================
--- END OF V2__seed_reference_data.sql
--- =============================================================================
+ALTER SEQUENCE seq_users RESTART WITH 7;
+ALTER SEQUENCE seq_roles RESTART WITH 3;
+ALTER SEQUENCE seq_bases RESTART WITH 4;
+ALTER SEQUENCE seq_equipment_types RESTART WITH 20;
+ALTER SEQUENCE seq_assets RESTART WITH 12;
+ALTER SEQUENCE seq_purchases RESTART WITH 5;
+ALTER SEQUENCE seq_transfers RESTART WITH 2;
+ALTER SEQUENCE seq_assignments RESTART WITH 2;
+ALTER SEQUENCE seq_expenditures RESTART WITH 4;
+ALTER SEQUENCE seq_audit_logs RESTART WITH 1;
+ALTER SEQUENCE seq_personnel RESTART WITH 11;
+

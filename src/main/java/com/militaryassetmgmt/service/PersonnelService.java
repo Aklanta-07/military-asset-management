@@ -4,6 +4,9 @@ import com.militaryassetmgmt.dto.response.PersonnelResponse;
 import com.militaryassetmgmt.entity.Personnel;
 import com.militaryassetmgmt.exception.ResourceNotFoundException;
 import com.militaryassetmgmt.repository.PersonnelRepository;
+import com.militaryassetmgmt.repository.UserRepository;
+import com.militaryassetmgmt.entity.User;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,14 +20,23 @@ import java.util.stream.Collectors;
 public class PersonnelService implements IPersonnelService {
 
     private final PersonnelRepository personnelRepository;
+    private final UserRepository userRepository;
 
     @Override
-    public List<PersonnelResponse> getPersonnel(Long baseId, Boolean activeOnly) {
+    public List<PersonnelResponse> getPersonnel(Long baseId, Boolean activeOnly, String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() ->
+                    new ResourceNotFoundException("User not found: " + username));
+
+        Long effectiveBaseId = user.isAdmin()
+            ? baseId
+            : user.getBaseId();
+
         List<Personnel> list;
-        if (baseId != null) {
+        if (effectiveBaseId != null) {
             list = Boolean.FALSE.equals(activeOnly)
-                    ? personnelRepository.findByBaseId(baseId)
-                    : personnelRepository.findActiveByBaseIdOrderByRank(baseId);
+                    ? personnelRepository.findByBaseId(effectiveBaseId)
+                    : personnelRepository.findActiveByBaseIdOrderByRank(effectiveBaseId);
         } else {
             list = Boolean.FALSE.equals(activeOnly)
                     ? personnelRepository.findAll()

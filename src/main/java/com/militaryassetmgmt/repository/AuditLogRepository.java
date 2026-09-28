@@ -23,5 +23,5 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findByDateRange(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
 
     @Query("SELECT a FROM AuditLog a WHERE (:entityType IS NULL OR a.entityType = :entityType) AND (:entityId IS NULL OR a.entityId = :entityId) AND (:performedBy IS NULL OR a.performedBy.id = :performedBy) AND (:action IS NULL OR a.action = :action) AND (:startDate IS NULL OR a.performedAt >= :startDate) AND (:endDate IS NULL OR a.performedAt <= :endDate) ORDER BY a.performedAt DESC")
-    Page<AuditLog> findWithFilters(@Param("entityType") String entityType, @Param("entityId") Long entityId, @Param("performedBy") Long performedBy, @Param("action") String action, @Param("startDate") Instant startDate, @Param("endDate") Instant endDate, Pageable pageable);
+    Page<AuditLog> findWithFilters(@Param("entityType") String entityType, @Param("entityId") Long entityId, @Param("performedBy") Long performedBy, @Param("action") AuditLog.Action action, @Param("startDate") Instant startDate, @Param("endDate") Instant endDate, Pageable pageable);
 }

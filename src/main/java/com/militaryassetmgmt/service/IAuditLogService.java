@@ -1,6 +1,7 @@
 package com.militaryassetmgmt.service;
 
 import com.militaryassetmgmt.dto.response.AuditLogResponse;
+import com.militaryassetmgmt.entity.AuditLog;
 import com.militaryassetmgmt.util.PageResponse;
 
 import java.time.Instant;
@@ -13,7 +14,7 @@ public interface IAuditLogService {
                    String correlationId, String sessionId);
 
     PageResponse<AuditLogResponse> getAuditLogs(String entityType, Long entityId,
-                                                Long performedBy, String action,
+                                                Long performedBy, AuditLog.Action action,
                                                 Instant startDate, Instant endDate,
                                                 int page, int size);
 

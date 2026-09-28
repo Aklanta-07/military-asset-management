@@ -15,11 +15,11 @@ public interface IPurchaseService {
 
     PageResponse<PurchaseResponse> getPurchases(Long baseId, Long equipmentTypeId,
                                                 LocalDate startDate, LocalDate endDate,
-                                                int page, int size, String sortBy, String sortDir);
+                                                int page, int size, String sortBy, String sortDir, String username);
 
-    PurchaseResponse getPurchaseById(Long id);
+    PurchaseResponse getPurchaseById(Long id, String username);
 
-    PurchaseResponse updatePurchase(Long id, PurchaseRequest request);
+    PurchaseResponse updatePurchase(Long id, PurchaseRequest request, String username);
 
-    void deletePurchase(Long id);
+    void deletePurchase(Long id, String username);
 }

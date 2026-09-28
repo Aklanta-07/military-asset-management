@@ -79,21 +79,63 @@ public class TransferService implements ITransferService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<TransferResponse> getTransfers(Long fromBaseId, Long toBaseId, Long equipmentTypeId,
                                                         String status, LocalDate startDate, LocalDate endDate,
-                                                        int page, int size, String sortBy, String sortDir) {
+                                                        int page, int size, String sortBy, String sortDir, String username) {
+
+        User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Transfer> transferPage = transferRepository.findWithFilters(fromBaseId, toBaseId, equipmentTypeId, status, startDate, endDate, pageable);
+        Page<Transfer> transferPage;
+
+        if (user.isAdmin()) {
+            transferPage = transferRepository.findWithFilters(
+                fromBaseId,
+                toBaseId,
+                equipmentTypeId,
+                status,
+                startDate,
+                endDate,
+                pageable
+        );
+        } else {
+            transferPage = transferRepository.findWithFiltersForUserBase(
+                user.getBaseId(),
+                fromBaseId,
+                toBaseId,
+                equipmentTypeId,
+                status,
+                startDate,
+                endDate,
+                pageable
+            );
+        }
 
         return PageResponse.of(transferPage.map(this::mapToResponse));
     }
 
     @Override
-    public TransferResponse getTransferById(Long id) {
+    @Transactional(readOnly = true)
+    public TransferResponse getTransferById(Long id, String username) {
+        User user = userRepository.findByUsername(username)
+        .orElseThrow(() ->
+                new ResourceNotFoundException("User not found: " + username));
+
         Transfer transfer = transferRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found with id: " + id));
+
+        if(!user.isAdmin()) {
+            Long userBaseId = user.getBaseId();
+            boolean hasAccess = transfer.getFromBase().getId().equals(userBaseId) || 
+            transfer.getToBase().getId().equals(userBaseId);
+            if(!hasAccess) {
+                throw new BusinessRuleViolationException("Not authorized to access this transfer");
+            }
+        }
         return mapToResponse(transfer);
     }
 
@@ -198,6 +240,28 @@ public class TransferService implements ITransferService {
         transfer.setCancelledAt(Instant.now());
         transfer.setNotes((transfer.getNotes() != null ? transfer.getNotes() + "; " : "") + "Cancelled: " + cancellationReason);
 
+        Transfer savedTransfer = transferRepository.save(transfer);
+        return mapToResponse(savedTransfer);
+    }
+
+    @Override
+    @Transactional
+    public TransferResponse markInTransit(Long id, String username) {
+        Transfer transfer = transferRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found with id: " + id));
+
+        if (!Transfer.Status.APPROVED.equals(transfer.getStatus())) {
+            throw new BusinessRuleViolationException("Can only mark as IN_TRANSIT transfers with APPROVED status");
+        }
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        if (!user.isAdmin() && !user.getBaseId().equals(transfer.getFromBase().getId())) {
+            throw new BusinessRuleViolationException("Not authorized to update this transfer");
+        }
+
+        transfer.setStatus(Transfer.Status.IN_TRANSIT);
         Transfer savedTransfer = transferRepository.save(transfer);
         return mapToResponse(savedTransfer);
     }

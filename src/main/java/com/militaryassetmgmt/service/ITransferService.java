@@ -12,13 +12,15 @@ public interface ITransferService {
 
     PageResponse<TransferResponse> getTransfers(Long fromBaseId, Long toBaseId, Long equipmentTypeId,
                                                 String status, LocalDate startDate, LocalDate endDate,
-                                                int page, int size, String sortBy, String sortDir);
+                                                int page, int size, String sortBy, String sortDir, String username);
 
-    TransferResponse getTransferById(Long id);
-
+    TransferResponse getTransferById(Long id, String username);
+    
     TransferResponse approveTransfer(Long id, String username);
 
     TransferResponse receiveTransfer(Long id, String username);
 
     TransferResponse cancelTransfer(Long id, String cancellationReason, String username);
+
+    TransferResponse markInTransit(Long id, String username);
 }

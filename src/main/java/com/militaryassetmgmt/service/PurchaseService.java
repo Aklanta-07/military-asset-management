@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -56,8 +57,7 @@ public class PurchaseService implements IPurchaseService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
         // Enforce base-scoped access: LOGISTICS_OFFICER and BASE_COMMANDER must use their own base
-        String role = createdByUser.getRoleName();
-        if (!"ADMIN".equals(role)) {
+        if (!createdByUser.isAdmin()) {
             Long userBaseId = createdByUser.getBaseId();
             if (userBaseId == null || !userBaseId.equals(request.getBaseId())) {
                 throw new AccessDeniedException("You can only create purchases for your assigned base.");
@@ -109,26 +109,58 @@ public class PurchaseService implements IPurchaseService {
     @Transactional(readOnly = true)
     public PageResponse<PurchaseResponse> getPurchases(Long baseId, Long equipmentTypeId,
                                                         LocalDate startDate, LocalDate endDate,
-                                                        int page, int size, String sortBy, String sortDir) {
+                                                        int page, int size, String sortBy, String sortDir, String username) {
+        User user = userRepository.findByUsername(username)
+                   .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        
+        Long effectiveBaseId = user.isAdmin()
+            ? baseId
+            : user.getBaseId();
+
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Purchase> purchasePage = purchaseRepository.findWithFilters(baseId, equipmentTypeId, startDate, endDate, pageable);
+        Page<Purchase> purchasePage = purchaseRepository.findWithFilters(effectiveBaseId, equipmentTypeId, startDate, endDate, pageable);
         return PageResponse.of(purchasePage.map(this::mapToResponse));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PurchaseResponse getPurchaseById(Long id) {
+    public PurchaseResponse getPurchaseById(Long id, String username) {
+        User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
         Purchase purchase = purchaseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase not found with id: " + id));
+
+    
+        if (!user.isAdmin()
+        && !Objects.equals(user.getBaseId(), purchase.getBase().getId())) {
+            throw new AccessDeniedException(
+                    "You can only access purchases for your assigned base."
+            );
+        }
+
         return mapToResponse(purchase);
     }
 
     @Override
     @Transactional
-    public PurchaseResponse updatePurchase(Long id, PurchaseRequest request) {
+    public PurchaseResponse updatePurchase(Long id, PurchaseRequest request, String username) {
+        User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
         Purchase purchase = purchaseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase not found with id: " + id));
+
+        if(!user.isAdmin() && !Objects.equals(user.getBaseId(), purchase.getBase().getId())) {
+             throw new AccessDeniedException(
+                    "You can only access purchases for your assigned base."
+            );
+        }
+
+        if(!user.isAdmin() && !Objects.equals(user.getBaseId(), request.getBaseId())) {
+            throw new AccessDeniedException("You can only update purchases for your assigned base.");
+        }
 
         if (purchase.getStatus() != Purchase.Status.PENDING) {
             throw new BusinessRuleViolationException("Cannot update purchase with status: " + purchase.getStatus());
@@ -157,9 +189,16 @@ public class PurchaseService implements IPurchaseService {
 
     @Override
     @Transactional
-    public void deletePurchase(Long id) {
+    public void deletePurchase(Long id, String username) {
+        User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
         Purchase purchase = purchaseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase not found with id: " + id));
+
+        if(!user.isAdmin() && !Objects.equals(user.getBaseId(), purchase.getBase().getId())) {
+            throw new AccessDeniedException("You can only delete purchases for your assigned base.");
+        }
 
         if (purchase.getStatus() != Purchase.Status.PENDING) {
             throw new BusinessRuleViolationException("Cannot delete purchase with status: " + purchase.getStatus());

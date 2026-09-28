@@ -19,7 +19,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query("SELECT a FROM Assignment a WHERE a.personnel.id = :personnelId")
     List<Assignment> findByPersonnelId(@Param("personnelId") Long personnelId);
 
-    List<Assignment> findByStatus(String status);
+    List<Assignment> findByStatus(Assignment.Status status);
 
     @Query("SELECT a FROM Assignment a WHERE a.assignedBy.id = :assignedBy")
     List<Assignment> findByAssignedBy(@Param("assignedBy") Long assignedBy);
@@ -62,6 +62,26 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
             ORDER BY a.assignedDate DESC
             """)
     Page<Assignment> findWithFilters(@Param("assetId") Long assetId, @Param("personnelId") Long personnelId, @Param("status") String status, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, Pageable pageable);
+
+    @Query("""
+        SELECT a
+        FROM Assignment a
+        WHERE a.asset.base.id = :baseId
+        AND (:assetId IS NULL OR a.asset.id = :assetId)
+        AND (:personnelId IS NULL OR a.personnel.id = :personnelId)
+        AND (:status IS NULL OR a.status = :status)
+        AND (:startDate IS NULL OR a.assignedDate >= :startDate)
+        AND (:endDate IS NULL OR a.assignedDate <= :endDate)
+        ORDER BY a.assignedDate DESC
+        """)
+Page<Assignment> findWithFiltersAndBase(
+        @Param("baseId") Long baseId,
+        @Param("assetId") Long assetId,
+        @Param("personnelId") Long personnelId,
+        @Param("status") String status,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        Pageable pageable);
 
     @Query("""
             SELECT COUNT(a) 

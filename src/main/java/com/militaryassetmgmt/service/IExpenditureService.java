@@ -11,8 +11,7 @@ public interface IExpenditureService {
     ExpenditureResponse createExpenditure(ExpenditureRequest request, String username);
 
     PageResponse<ExpenditureResponse> getExpenditures(Long baseId, Long equipmentTypeId, String reason,
-                                                      LocalDate startDate, LocalDate endDate,
-                                                      int page, int size, String sortBy, String sortDir);
+            LocalDate startDate, LocalDate endDate, int page, int size, String sortBy, String sortDir, String username);
 
-    ExpenditureResponse getExpenditureById(Long id);
+    ExpenditureResponse getExpenditureById(Long id, String username);
 }

@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -81,21 +82,49 @@ public class AssignmentService implements IAssignmentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<AssignmentResponse> getAssignments(Long assetId, Long personnelId, String status,
                                                             LocalDate startDate, LocalDate endDate,
-                                                            int page, int size, String sortBy, String sortDir) {
+                                                            int page, int size, String sortBy, String sortDir,
+                                                            String username) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Assignment> assignmentPage = assignmentRepository.findWithFilters(assetId, personnelId, status, startDate, endDate, pageable);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        Page<Assignment> assignmentPage;
+
+        if (user.isAdmin()) {
+            // Admin can view all assignments
+            assignmentPage = assignmentRepository.findWithFilters(
+                    assetId, personnelId, status, startDate, endDate, pageable);
+        } else {
+            // Base Commander and Logistics Officer can only view their assigned base
+            assignmentPage = assignmentRepository.findWithFiltersAndBase(
+                    user.getBaseId(), assetId, personnelId, status, startDate, endDate, pageable);
+        }
 
         return PageResponse.of(assignmentPage.map(this::mapToResponse));
     }
 
     @Override
-    public AssignmentResponse getAssignmentById(Long id) {
+    @Transactional(readOnly = true)
+    public AssignmentResponse getAssignmentById(Long id, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         Assignment assignment = assignmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found with id: " + id));
+
+        if (!user.isAdmin()
+                && !Objects.equals(
+                        user.getBaseId(),
+                        assignment.getAsset().getBase().getId())) {
+
+            throw new BusinessRuleViolationException(
+                    "Not authorized to view this assignment"
+                 );
+        }
         return mapToResponse(assignment);
     }
 
@@ -113,8 +142,10 @@ public class AssignmentService implements IAssignmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
         // Check if user is authorized (Admin or Base Commander of asset's base)
-        if (!returnedBy.isAdmin() && !returnedBy.getBaseId().equals(assignment.getAsset().getBase().getId())) {
-            throw new BusinessRuleViolationException("Not authorized to return assets for this base");
+        if (!returnedBy.isAdmin()
+                && !Objects.equals(returnedBy.getBaseId(), assignment.getAsset().getBase().getId())) {
+            throw new BusinessRuleViolationException(
+                    "Not authorized to return assets for this base");
         }
 
         assignment.setStatus(Assignment.Status.RETURNED);
@@ -135,12 +166,17 @@ public class AssignmentService implements IAssignmentService {
                 .id(assignment.getId())
                 .assetId(assignment.getAsset().getId())
                 .assetSerialNumber(assignment.getAsset().getSerialNumber())
-                .assetName(assignment.getAsset().getEquipmentType().getName())
+                .equipmentTypeId(assignment.getAsset().getEquipmentType().getId())
+                .equipmentTypeCode(assignment.getAsset().getEquipmentType().getCode())
+                .equipmentTypeName(assignment.getAsset().getEquipmentType().getName())
                 .personnelId(assignment.getPersonnel().getId())
                 .personnelServiceNumber(assignment.getPersonnel().getServiceNumber())
                 .personnelFullName(assignment.getPersonnel().getFullName())
                 .personnelRank(assignment.getPersonnel().getRank())
                 .personnelUnit(assignment.getPersonnel().getUnit())
+                .baseId(assignment.getAsset().getBase().getId())
+                .baseCode(assignment.getAsset().getBase().getCode())
+                .baseName(assignment.getAsset().getBase().getName())
                 .assignedDate(assignment.getAssignedDate())
                 .expectedReturnDate(assignment.getExpectedReturnDate())
                 .returnedDate(assignment.getReturnedDate())

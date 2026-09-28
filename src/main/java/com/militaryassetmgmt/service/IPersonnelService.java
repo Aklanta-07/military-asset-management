@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface IPersonnelService {
 
-    List<PersonnelResponse> getPersonnel(Long baseId, Boolean activeOnly);
+    List<PersonnelResponse> getPersonnel(Long baseId, Boolean activeOnly, String username);
 
     PersonnelResponse getById(Long id);
 

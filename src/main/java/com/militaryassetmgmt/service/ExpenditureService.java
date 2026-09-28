@@ -9,6 +9,7 @@ import com.militaryassetmgmt.entity.EquipmentType;
 import com.militaryassetmgmt.entity.Expenditure;
 import com.militaryassetmgmt.entity.User;
 import com.militaryassetmgmt.exception.BusinessRuleViolationException;
+import org.springframework.security.access.AccessDeniedException;   
 import com.militaryassetmgmt.exception.ResourceNotFoundException;
 import com.militaryassetmgmt.repository.AssetRepository;
 import com.militaryassetmgmt.repository.BaseRepository;
@@ -25,8 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
-
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -51,10 +51,13 @@ public class ExpenditureService implements IExpenditureService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
         // Check if user is authorized (Admin or Base Commander of the base)
-        if (!authorizedBy.isAdmin() && !authorizedBy.getBaseId().equals(base.getId())) {
-            throw new BusinessRuleViolationException("Not authorized to record expenditures for this base");
-        }
+        if (!authorizedBy.isAdmin()
+        && !Objects.equals(authorizedBy.getBaseId(), base.getId())) {
 
+            throw new AccessDeniedException(
+                "You can only record expenditures for your assigned base."
+            );
+        }
         // Check available quantity
         Long availableQty = assetRepository.countAvailableByBaseAndEquipmentType(base.getId(), equipmentType.getId());
         if (availableQty < request.getQuantity()) {
@@ -88,21 +91,42 @@ public class ExpenditureService implements IExpenditureService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<ExpenditureResponse> getExpenditures(Long baseId, Long equipmentTypeId, String reason,
                                                               LocalDate startDate, LocalDate endDate,
-                                                              int page, int size, String sortBy, String sortDir) {
+                                                              int page, int size, String sortBy, String sortDir, String username) {
+
+        User user = userRepository.findByUsername(username)
+        .orElseThrow(() ->
+                new ResourceNotFoundException("User not found: " + username));
+
+        Long effectiveBaseId = user.isAdmin()
+                ? baseId
+                : user.getBaseId();
+
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Expenditure> expenditurePage = expenditureRepository.findWithFilters(baseId, equipmentTypeId, reason, startDate, endDate, pageable);
+        Page<Expenditure> expenditurePage = expenditureRepository.findWithFilters(effectiveBaseId, equipmentTypeId, reason, startDate, endDate, pageable);
 
         return PageResponse.of(expenditurePage.map(this::mapToResponse));
     }
 
     @Override
-    public ExpenditureResponse getExpenditureById(Long id) {
+    @Transactional(readOnly = true)
+    public ExpenditureResponse getExpenditureById(Long id, String username) {
+
+        User user = userRepository.findByUsername(username)
+        .orElseThrow(() ->
+                new ResourceNotFoundException("User not found: " + username));
+
         Expenditure expenditure = expenditureRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Expenditure not found with id: " + id));
+        
+        if (!user.isAdmin() && !Objects.equals(user.getBaseId(), expenditure.getBase().getId())) {
+            throw new AccessDeniedException("You can only view expenditures for your assigned base.");
+        }
+
         return mapToResponse(expenditure);
     }
 
