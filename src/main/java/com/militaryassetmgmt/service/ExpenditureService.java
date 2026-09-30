@@ -92,7 +92,7 @@ public class ExpenditureService implements IExpenditureService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExpenditureResponse> getExpenditures(Long baseId, Long equipmentTypeId, String reason,
+    public PageResponse<ExpenditureResponse> getExpenditures(Long baseId, Long equipmentTypeId,  Expenditure.Reason reason,
                                                               LocalDate startDate, LocalDate endDate,
                                                               int page, int size, String sortBy, String sortDir, String username) {
 

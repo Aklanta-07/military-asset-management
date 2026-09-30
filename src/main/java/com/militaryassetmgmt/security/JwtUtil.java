@@ -77,7 +77,7 @@ public class JwtUtil {
             claims.put("baseId", user.getBaseId());
             claims.put("fullName", user.getFullName());
         }
-        return createToken(claims, userDetails.getUsername(), accessTokenExpiryMinutes * 60 * 1000);
+        return createToken(claims, userDetails.getUsername(), accessTokenExpiryMinutes * 60 * 250);
     }
 
     public String generateRefreshToken(UserDetails userDetails) {

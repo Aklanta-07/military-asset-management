@@ -4,6 +4,7 @@ import com.militaryassetmgmt.dto.request.TransferRequest;
 import com.militaryassetmgmt.util.ApiResponse;
 import com.militaryassetmgmt.util.PageResponse;
 import com.militaryassetmgmt.dto.response.TransferResponse;
+import com.militaryassetmgmt.entity.Transfer;
 import com.militaryassetmgmt.service.TransferService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ public class TransferController {
             @RequestParam(required = false) Long fromBaseId,
             @RequestParam(required = false) Long toBaseId,
             @RequestParam(required = false) Long equipmentTypeId,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Transfer.Status status,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,

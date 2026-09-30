@@ -48,7 +48,7 @@ public class AuditAspect {
             auditLogService.logAction(
                     entityType,
                     entityId,
-                    action.name(),
+                    action,
                     null,
                     null,
                     null,

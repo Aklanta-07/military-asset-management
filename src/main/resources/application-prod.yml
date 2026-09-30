@@ -1,0 +1,177 @@
+spring:
+  application:
+    name: military-asset-management
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 30000
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+
+    show-sql: false
+
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+        default_schema: public
+
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/postgresql
+    baseline-on-migrate: false
+    baseline-version: 0
+    baseline-description: Initial baseline
+    validate-on-migrate: true
+    clean-disabled: true
+    out-of-order: false
+    table: flyway_schema_history
+    default-schema: public
+    schemas: public
+
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: UTC
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+    format:
+      date: iso
+      date-time: iso
+      time: iso
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+  servlet:
+    context-path: /
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        secure: true
+        same-site: lax
+
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+
+
+app:
+  cors:
+    allowed-origins:
+      - ${FRONTEND_URL}
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+    max-age: 3600
+
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: military-asset-management
+      audience: military-asset-client
+      access-token-expiry-minutes: 60
+      refresh-token-expiry-days: 7
+
+  audit:
+    enabled: true
+    async: true
+    max-payload-size: 10000
+
+  pagination:
+    default-page-size: 20
+    max-page-size: 100
+
+  dashboard:
+    default-date-range-days: 30
+
+
+logging:
+  level:
+    com.militaryassetmgmt: INFO
+    org.springframework.security: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.flywaydb: INFO
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+    display-request-duration: true
+    try-it-out-enabled: true
+
+  packages-to-scan: com.militaryassetmgmt.controller
+  paths-to-match: /api/**
+  show-actuator: false
+  version: 1.0.0
+
+  title: Military Asset Management API
+
+  description: |
+    REST API for Military Asset Management System
+
+  contact:
+    name: Military Asset Management Team
+
+  license:
+    name: Proprietary
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+
+  endpoint:
+    health:
+      show-details: never
+
+  h2:
+    console:
+      enabled: false

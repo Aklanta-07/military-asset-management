@@ -1,6 +1,7 @@
 package com.militaryassetmgmt.controller;
 
 import com.militaryassetmgmt.dto.response.AssetResponse;
+import com.militaryassetmgmt.entity.Asset;
 import com.militaryassetmgmt.service.AssetService;
 import com.militaryassetmgmt.util.ApiResponse;
 import com.militaryassetmgmt.util.PageResponse;
@@ -21,7 +22,7 @@ public class AssetController {
     public ApiResponse<PageResponse<AssetResponse>> getAssets(
             @RequestParam(required = false) Long baseId,
             @RequestParam(required = false) Long equipmentTypeId,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Asset.Status status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication) {

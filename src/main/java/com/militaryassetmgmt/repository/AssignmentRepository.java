@@ -61,7 +61,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
             AND (:endDate IS NULL OR a.assignedDate <= :endDate)
             ORDER BY a.assignedDate DESC
             """)
-    Page<Assignment> findWithFilters(@Param("assetId") Long assetId, @Param("personnelId") Long personnelId, @Param("status") String status, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, Pageable pageable);
+    Page<Assignment> findWithFilters(@Param("assetId") Long assetId, @Param("personnelId") Long personnelId, @Param("status") Assignment.Status status, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, Pageable pageable);
 
     @Query("""
         SELECT a
@@ -78,7 +78,7 @@ Page<Assignment> findWithFiltersAndBase(
         @Param("baseId") Long baseId,
         @Param("assetId") Long assetId,
         @Param("personnelId") Long personnelId,
-        @Param("status") String status,
+        @Param("status") Assignment.Status status,
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate,
         Pageable pageable);

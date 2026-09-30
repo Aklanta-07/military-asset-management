@@ -3,6 +3,7 @@ package com.militaryassetmgmt.controller;
 import com.militaryassetmgmt.dto.request.AssignmentRequest;
 import com.militaryassetmgmt.util.ApiResponse;
 import com.militaryassetmgmt.dto.response.AssignmentResponse;
+import com.militaryassetmgmt.entity.Assignment;
 import com.militaryassetmgmt.util.PageResponse;
 import com.militaryassetmgmt.service.AssignmentService;
 import jakarta.validation.Valid;
@@ -34,7 +35,7 @@ public class AssignmentController {
     public ApiResponse<PageResponse<AssignmentResponse>> getAssignments(
             @RequestParam(required = false) Long assetId,
             @RequestParam(required = false) Long personnelId,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Assignment.Status status,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,

@@ -54,7 +54,7 @@ public class AuthController {
         if (authentication == null) {
             return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized", 401, "/api/auth/me"));
         }
-        User user = userService.findByUsernameOrThrow(authentication.getName());
+        User user = userService.getCurrentUserWithBase(authentication.getName());
         AuthResponse.UserInfo userInfo = AuthResponse.UserInfo.builder()
                 .id(user.getId())
                 .username(user.getUsername())

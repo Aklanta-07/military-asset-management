@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.time.LocalDate;
 
+import com.militaryassetmgmt.entity.Assignment;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -32,7 +34,7 @@ public class AssignmentResponse {
     private LocalDate assignedDate;
     private LocalDate returnedDate;
     private LocalDate expectedReturnDate;
-    private String status;
+    private Assignment.Status status;
     private String assignedBy;
     private String assignedByName;
     private String returnedBy;

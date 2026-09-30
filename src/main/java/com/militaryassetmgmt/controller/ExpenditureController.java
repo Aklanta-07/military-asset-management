@@ -4,6 +4,7 @@ import com.militaryassetmgmt.dto.request.ExpenditureRequest;
 import com.militaryassetmgmt.util.ApiResponse;
 import com.militaryassetmgmt.util.PageResponse;
 import com.militaryassetmgmt.dto.response.ExpenditureResponse;
+import com.militaryassetmgmt.entity.Expenditure;
 import com.militaryassetmgmt.service.ExpenditureService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class ExpenditureController {
     public ApiResponse<PageResponse<ExpenditureResponse>> getExpenditures(
             @RequestParam(required = false) Long baseId,
             @RequestParam(required = false) Long equipmentTypeId,
-            @RequestParam(required = false) String reason,
+            @RequestParam(required = false) Expenditure.Reason reason,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,

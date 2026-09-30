@@ -23,7 +23,7 @@ public interface TransferRepository extends JpaRepository<Transfer, Long> {
     @Query("SELECT t FROM Transfer t LEFT JOIN FETCH t.fromBase LEFT JOIN FETCH t.toBase LEFT JOIN FETCH t.equipmentType WHERE t.equipmentType.id = :equipmentTypeId")
     List<Transfer> findByEquipmentTypeId(@Param("equipmentTypeId") Long equipmentTypeId);
 
-    List<Transfer> findByStatus(String status);
+    List<Transfer> findByStatus(Transfer.Status status);
 
     @Query("SELECT t FROM Transfer t LEFT JOIN FETCH t.fromBase LEFT JOIN FETCH t.toBase LEFT JOIN FETCH t.equipmentType WHERE t.requestedBy.id = :requestedBy")
     List<Transfer> findByRequestedBy(@Param("requestedBy") Long requestedBy);
@@ -35,7 +35,7 @@ public interface TransferRepository extends JpaRepository<Transfer, Long> {
     List<Transfer> findByBaseIdAndDateRange(@Param("baseId") Long baseId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT t FROM Transfer t LEFT JOIN FETCH t.fromBase LEFT JOIN FETCH t.toBase LEFT JOIN FETCH t.equipmentType LEFT JOIN FETCH t.requestedBy LEFT JOIN FETCH t.approvedBy LEFT JOIN FETCH t.receivedBy LEFT JOIN FETCH t.cancelledBy WHERE (:fromBaseId IS NULL OR t.fromBase.id = :fromBaseId) AND (:toBaseId IS NULL OR t.toBase.id = :toBaseId) AND (:equipmentTypeId IS NULL OR t.equipmentType.id = :equipmentTypeId) AND (:status IS NULL OR t.status = :status) AND (:startDate IS NULL OR t.transferDate >= :startDate) AND (:endDate IS NULL OR t.transferDate <= :endDate) ORDER BY t.transferDate DESC")
-    Page<Transfer> findWithFilters(@Param("fromBaseId") Long fromBaseId, @Param("toBaseId") Long toBaseId, @Param("equipmentTypeId") Long equipmentTypeId, @Param("status") String status, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, Pageable pageable);
+    Page<Transfer> findWithFilters(@Param("fromBaseId") Long fromBaseId, @Param("toBaseId") Long toBaseId, @Param("equipmentTypeId") Long equipmentTypeId, @Param("status") Transfer.Status status, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(t.quantity), 0) FROM Transfer t WHERE t.toBase.id = :baseId AND t.equipmentType.id = :equipmentTypeId AND t.status IN ('RECEIVED', 'IN_TRANSIT') AND t.transferDate BETWEEN :startDate AND :endDate")
     Long sumTransfersInByBaseAndEquipmentTypeAndDateRange(@Param("baseId") Long baseId, @Param("equipmentTypeId") Long equipmentTypeId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
@@ -99,7 +99,7 @@ Page<Transfer> findWithFiltersForUserBase(
         @Param("fromBaseId") Long fromBaseId,
         @Param("toBaseId") Long toBaseId,
         @Param("equipmentTypeId") Long equipmentTypeId,
-        @Param("status") String status,
+        @Param("status") Transfer.Status status,
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate,
         Pageable pageable);

@@ -24,7 +24,7 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
     @Query("SELECT a FROM Asset a WHERE a.base.id = :baseId AND a.equipmentType.id = :equipmentTypeId")
     List<Asset> findByBaseIdAndEquipmentTypeId(@Param("baseId") Long baseId, @Param("equipmentTypeId") Long equipmentTypeId);
 
-    List<Asset> findByStatus(String status);
+    List<Asset> findByStatus(Asset.Status status);
 
     @Query("SELECT a FROM Asset a WHERE a.base.id = :baseId AND a.equipmentType.id = :equipmentTypeId AND a.active = 1 AND a.status NOT IN ('EXPENDED', 'DISPOSED')")
     List<Asset> findAvailableByBaseAndEquipmentType(@Param("baseId") Long baseId, @Param("equipmentTypeId") Long equipmentTypeId);
@@ -48,5 +48,5 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
     Long countByBaseIdAndEquipmentTypeIdAndAcquiredDateBefore(@Param("baseId") Long baseId, @Param("equipmentTypeId") Long equipmentTypeId, @Param("date") LocalDate date);
 
     @Query("SELECT a FROM Asset a WHERE (:baseId IS NULL OR a.base.id = :baseId) AND (:equipmentTypeId IS NULL OR a.equipmentType.id = :equipmentTypeId) AND (:status IS NULL OR a.status = :status) ORDER BY a.serialNumber ASC")
-    org.springframework.data.domain.Page<Asset> findWithFilters(@Param("baseId") Long baseId, @Param("equipmentTypeId") Long equipmentTypeId, @Param("status") String status, org.springframework.data.domain.Pageable pageable);
+    org.springframework.data.domain.Page<Asset> findWithFilters(@Param("baseId") Long baseId, @Param("equipmentTypeId") Long equipmentTypeId, @Param("status") Asset.Status status, org.springframework.data.domain.Pageable pageable);
 }

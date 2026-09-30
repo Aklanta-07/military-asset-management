@@ -31,7 +31,7 @@ public class AuditLogService implements IAuditLogService {
     @Override
     @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void logAction(String entityType, Long entityId, String action,
+    public void logAction(String entityType, Long entityId, AuditLog.Action action,
                           String oldValues, String newValues, String changedFields,
                           String username, String ipAddress, String userAgent,
                           String correlationId, String sessionId) {
@@ -44,7 +44,7 @@ public class AuditLogService implements IAuditLogService {
             AuditLog auditLog = AuditLog.builder()
                     .entityType(entityType)
                     .entityId(entityId)
-                    .action(AuditLog.Action.valueOf(action.toUpperCase()))
+                    .action(AuditLog.Action.valueOf(action.name().toUpperCase()))
                     .oldValues(oldValues)
                     .newValues(newValues)
                     .changedFields(changedFields)
@@ -87,7 +87,7 @@ public class AuditLogService implements IAuditLogService {
                 .id(auditLog.getId())
                 .entityType(auditLog.getEntityType())
                 .entityId(auditLog.getEntityId())
-                .action(auditLog.getAction().name())
+                .action(auditLog.getAction())
                 .oldValues(auditLog.getOldValues())
                 .newValues(auditLog.getNewValues())
                 .changedFields(auditLog.getChangedFields())

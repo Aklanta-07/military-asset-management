@@ -18,7 +18,7 @@ public interface ExpenditureRepository extends JpaRepository<Expenditure, Long> 
     @Query("SELECT e FROM Expenditure e WHERE e.equipmentType.id = :equipmentTypeId")
     List<Expenditure> findByEquipmentTypeId(@Param("equipmentTypeId") Long equipmentTypeId);
 
-    List<Expenditure> findByReason(String reason);
+    List<Expenditure> findByReason(Expenditure.Reason reason);
 
     @Query("SELECT e FROM Expenditure e WHERE e.base.id = :baseId AND e.expenditureDate BETWEEN :startDate AND :endDate ORDER BY e.expenditureDate DESC")
     List<Expenditure> findByBaseIdAndDateRange(@Param("baseId") Long baseId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
@@ -27,7 +27,7 @@ public interface ExpenditureRepository extends JpaRepository<Expenditure, Long> 
     List<Expenditure> findByEquipmentTypeIdAndDateRange(@Param("equipmentTypeId") Long equipmentTypeId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT e FROM Expenditure e WHERE (:baseId IS NULL OR e.base.id = :baseId) AND (:equipmentTypeId IS NULL OR e.equipmentType.id = :equipmentTypeId) AND (:reason IS NULL OR e.reason = :reason) AND (:startDate IS NULL OR e.expenditureDate >= :startDate) AND (:endDate IS NULL OR e.expenditureDate <= :endDate) ORDER BY e.expenditureDate DESC")
-    Page<Expenditure> findWithFilters(@Param("baseId") Long baseId, @Param("equipmentTypeId") Long equipmentTypeId, @Param("reason") String reason, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, Pageable pageable);
+    Page<Expenditure> findWithFilters(@Param("baseId") Long baseId, @Param("equipmentTypeId") Long equipmentTypeId, @Param("reason") Expenditure.Reason reason, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(e.quantity), 0) FROM Expenditure e WHERE e.base.id = :baseId AND e.equipmentType.id = :equipmentTypeId AND e.expenditureDate BETWEEN :startDate AND :endDate")
     Long sumQuantityByBaseAndEquipmentTypeAndDateRange(@Param("baseId") Long baseId, @Param("equipmentTypeId") Long equipmentTypeId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);

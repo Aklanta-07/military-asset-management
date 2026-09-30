@@ -55,6 +55,10 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
+		<dependency>
+           <groupId>org.springframework.boot</groupId>
+           <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
 		<!-- JWT (JJWT) -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -74,26 +78,25 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- Database - H2 for development (in-memory), Oracle for production -->
+		<!-- Database - H2 for development (in-memory), PostgreSQL for production -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.oracle.database.jdbc</groupId>
-			<artifactId>ojdbc11</artifactId>
-			<version>21.9.0.0</version>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
+			<artifactId>flyway-database-postgresql</artifactId>
 			<version>${flyway.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-database-oracle</artifactId>
+			<artifactId>flyway-core</artifactId>
 			<version>${flyway.version}</version>
 		</dependency>
 
@@ -189,35 +192,8 @@
 					</compilerArgs>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.flywaydb</groupId>
-				<artifactId>flyway-maven-plugin</artifactId>
-				<version>${flyway.version}</version>
-				<configuration>
-					<url>${flyway.url}</url>
-					<user>${flyway.user}</user>
-					<password>${flyway.password}</password>
-					<locations>filesystem:src/main/resources/db/migration</locations>
-					<baselineOnMigrate>true</baselineOnMigrate>
-				</configuration>
-			</plugin>
 		</plugins>
 	</build>
-
-	<repositories>
-		<!-- Oracle Maven Repository for ojdbc11 -->
-		<repository>
-			<id>oracle-maven-repo</id>
-			<name>Oracle Maven Repository</name>
-			<url>https://maven.oracle.com</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
 
 	<profiles>
 		<profile>
@@ -225,50 +201,6 @@
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
-			<properties>
-				<flyway.url>jdbc:h2:mem:militaryasset;DB_CLOSE_DELAY=-1;MODE=Oracle</flyway.url>
-				<flyway.user>sa</flyway.user>
-				<flyway.password></flyway.password>
-			</properties>
-			<dependencies>
-				<dependency>
-					<groupId>com.h2database</groupId>
-					<artifactId>h2</artifactId>
-					<scope>compile</scope>
-				</dependency>
-			</dependencies>
-		</profile>
-		<profile>
-			<id>oracle-dev</id>
-			<properties>
-				<flyway.url>jdbc:oracle:thin:@localhost:1521:ORCL</flyway.url>
-				<flyway.user>MILITARY_ASSET</flyway.user>
-				<flyway.password>oracle</flyway.password>
-			</properties>
-			<dependencies>
-				<dependency>
-					<groupId>com.oracle.database.jdbc</groupId>
-					<artifactId>ojdbc11</artifactId>
-					<version>21.9.0.0</version>
-					<scope>compile</scope>
-				</dependency>
-			</dependencies>
-		</profile>
-		<profile>
-			<id>prod</id>
-			<properties>
-				<flyway.url>${ORACLE_JDBC_URL}</flyway.url>
-				<flyway.user>${ORACLE_USERNAME}</flyway.user>
-				<flyway.password>${ORACLE_PASSWORD}</flyway.password>
-			</properties>
-			<dependencies>
-				<dependency>
-					<groupId>com.oracle.database.jdbc</groupId>
-					<artifactId>ojdbc11</artifactId>
-					<version>21.9.0.0</version>
-					<scope>compile</scope>
-				</dependency>
-			</dependencies>
 		</profile>
 	</profiles>
 </project>

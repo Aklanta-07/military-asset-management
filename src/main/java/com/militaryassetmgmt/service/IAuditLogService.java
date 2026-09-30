@@ -8,7 +8,7 @@ import java.time.Instant;
 
 public interface IAuditLogService {
 
-    void logAction(String entityType, Long entityId, String action,
+    void logAction(String entityType, Long entityId, AuditLog.Action action,
                    String oldValues, String newValues, String changedFields,
                    String username, String ipAddress, String userAgent,
                    String correlationId, String sessionId);

@@ -51,7 +51,7 @@ spring:
   # ---------------------------------------------------------------------------
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration/h2
     baseline-on-migrate: true
     baseline-version: 0
     baseline-description: Initial baseline
@@ -129,7 +129,7 @@ app:
 
   security:
     jwt:
-      secret: "military-asset-management-super-secret-key-for-jwt-signing-min-256-bits"
+      secret: ${JWT_SECRET}
       issuer: military-asset-management
       audience: military-asset-client
       access-token-expiry-minutes: 60

@@ -9,7 +9,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
@@ -54,12 +53,10 @@ public class AuditLog extends BaseEntity {
     @Column(name = "action", nullable = false, length = 30)
     private Action action;
 
-    @Lob
-    @Column(name = "old_values")
+    @Column(name = "old_values", columnDefinition = "TEXT")
     private String oldValues;
 
-    @Lob
-    @Column(name = "new_values")
+    @Column(name = "new_values", columnDefinition = "TEXT")
     private String newValues;
 
     @Size(max = 1000)

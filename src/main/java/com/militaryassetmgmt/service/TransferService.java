@@ -81,7 +81,7 @@ public class TransferService implements ITransferService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<TransferResponse> getTransfers(Long fromBaseId, Long toBaseId, Long equipmentTypeId,
-                                                        String status, LocalDate startDate, LocalDate endDate,
+                                                        Transfer.Status status, LocalDate startDate, LocalDate endDate,
                                                         int page, int size, String sortBy, String sortDir, String username) {
 
         User user = userRepository.findByUsername(username)

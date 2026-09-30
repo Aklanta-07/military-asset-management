@@ -28,7 +28,7 @@ public class AssetService implements IAssetService {
     private final UserRepository userRepository;
 
     @Override
-    public PageResponse<AssetResponse> getAssets(Long baseId, Long equipmentTypeId, String status, int page, int size, String username) {
+    public PageResponse<AssetResponse> getAssets(Long baseId, Long equipmentTypeId, Asset.Status status, int page, int size, String username) {
         User user = userRepository.findByUsername(username)
         .orElseThrow(() ->
                 new ResourceNotFoundException("User not found: " + username));

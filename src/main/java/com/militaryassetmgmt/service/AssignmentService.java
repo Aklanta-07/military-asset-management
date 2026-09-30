@@ -83,7 +83,7 @@ public class AssignmentService implements IAssignmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<AssignmentResponse> getAssignments(Long assetId, Long personnelId, String status,
+    public PageResponse<AssignmentResponse> getAssignments(Long assetId, Long personnelId, Assignment.Status status,
                                                             LocalDate startDate, LocalDate endDate,
                                                             int page, int size, String sortBy, String sortDir,
                                                             String username) {
@@ -180,7 +180,7 @@ public class AssignmentService implements IAssignmentService {
                 .assignedDate(assignment.getAssignedDate())
                 .expectedReturnDate(assignment.getExpectedReturnDate())
                 .returnedDate(assignment.getReturnedDate())
-                .status(assignment.getStatus().name())
+                .status(assignment.getStatus())
                 .assignedBy(assignment.getAssignedBy().getUsername())
                 .returnedBy(assignment.getReturnedBy() != null ? assignment.getReturnedBy().getUsername() : null)
                 .notes(assignment.getNotes())

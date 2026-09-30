@@ -2,6 +2,7 @@ package com.militaryassetmgmt.service;
 
 import com.militaryassetmgmt.dto.request.AssignmentRequest;
 import com.militaryassetmgmt.dto.response.AssignmentResponse;
+import com.militaryassetmgmt.entity.Assignment;
 import com.militaryassetmgmt.util.PageResponse;
 
 import java.time.LocalDate;
@@ -10,7 +11,7 @@ public interface IAssignmentService {
 
     AssignmentResponse createAssignment(AssignmentRequest request, String username);
 
-    PageResponse<AssignmentResponse> getAssignments(Long assetId, Long personnelId, String status,
+    PageResponse<AssignmentResponse> getAssignments(Long assetId, Long personnelId, Assignment.Status status,
             LocalDate startDate, LocalDate endDate,
             int page, int size, String sortBy, String sortDir, String username);
 

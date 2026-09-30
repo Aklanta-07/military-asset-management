@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+import com.militaryassetmgmt.entity.AuditLog;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -16,7 +18,7 @@ public class AuditLogResponse {
     private Long id;
     private String entityType;
     private Long entityId;
-    private String action;
+    private AuditLog.Action action;
     private String oldValues;
     private String newValues;
     private String changedFields;

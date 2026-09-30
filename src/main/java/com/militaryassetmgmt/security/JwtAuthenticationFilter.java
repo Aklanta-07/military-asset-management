@@ -32,32 +32,66 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
 
-        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
+        final String authHeader = request.getHeader("Authorization");
+
+        // No JWT → let Spring Security handle authentication
+        if (!StringUtils.hasText(authHeader) ||
+                !authHeader.startsWith("Bearer ")) {
+
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7);
+        final String jwt = authHeader.substring(7);
+
         try {
-            username = jwtUtil.extractUsername(jwt);
-            if (StringUtils.hasText(username) && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            String username = jwtUtil.extractUsername(jwt);
+
+            if (StringUtils.hasText(username) &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                UserDetails userDetails =
+                        userDetailsService.loadUserByUsername(username);
+
                 if (jwtUtil.validateToken(jwt, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities()
+
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request)
                     );
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                    SecurityContextHolder
+                            .getContext()
+                            .setAuthentication(authToken);
                 }
             }
-        } catch (Exception e) {
-            log.debug("JWT validation failed: {}", e.getMessage());
-        }
 
-        filterChain.doFilter(request, response);
+            filterChain.doFilter(request, response);
+
+        } catch (Exception e) {
+
+            log.debug("JWT validation failed: {}", e.getMessage());
+
+            // JWT was supplied but is invalid/expired.
+            // Tell frontend to refresh the access token.
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+
+            response.getWriter().write("""
+                    {
+                        "success": false,
+                        "message": "Access token is invalid or expired",
+                        "status": 401
+                    }
+                    """);
+        }
     }
 }

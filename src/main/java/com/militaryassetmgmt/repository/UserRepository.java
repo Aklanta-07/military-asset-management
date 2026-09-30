@@ -44,7 +44,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("UPDATE User u SET u.lastLoginAt = :lastLoginAt WHERE u.id = :id")
     void updateLastLogin(@Param("id") Long id, @Param("lastLoginAt") Instant lastLoginAt);
 
-    @Query("SELECT u FROM User u LEFT JOIN FETCH u.base WHERE u.username = :username")
+    @Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.base
+    WHERE u.username = :username
+    """)
     Optional<User> findByUsernameWithBase(@Param("username") String username);
 
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.base LEFT JOIN FETCH u.role WHERE u.username = :username")
